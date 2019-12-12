@@ -1,0 +1,128 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix mads: <http://www.loc.gov/mads/rdf/v1#> .
+@prefix vann:  <http://purl.org/vocab/vann/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix dc:    <http://purl.org/dc/elements/1.1/> .
+@prefix bs: <http://schema.bibbi.dev/> .
+
+bs: a owl:Ontology ;
+  owl:versionInfo "0.1.0" ;
+  dc:title "Biblioteksentralens RDF-skjema for Bibbi autoriteter"@nb ,
+    "Biblioteksentralen's schema for Bibbi authorities"@en ;
+.
+
+bs:Entity a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
+  rdfs:label "Entity"@en , "Entitet"@nb ;
+  rdfs:comment "Entitet med stabil URI."@nb ;
+.
+
+bs:EntityCandidate a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
+  rdfs:label "Entity candidate"@en , "Entitetskandidat"@nb ;
+  rdfs:comment "Entitetskandidat som ikke er godkjent enda. URI-en er ikke stabil."@nb ;
+.
+
+bs:AuthorityResource a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;  # God idé eller ikke? Blander vi RWO og ikke?
+  rdfs:label "Authority Resource"@en , "Autoritetsressurs"@nb ;
+  rdfs:comment "Overordnet klasse av ting"@nb ;
+.
+
+# skos:Concept
+bs:Topic a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:label "Generelt emne"@nb ,
+    "Generelt emne"@nn ,
+    "General topic"@en ;
+  rdfs:comment "Topical subject."@nb ;
+.
+
+# schema:Place
+bs:Place a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:label "Geografisk sted"@nb ,
+    "Geografisk stad"@nn ,
+    "Geographic place"@en ;
+  rdfs:comment "Geographic place or feature."@nb ;
+.
+
+bs:GenreOrForm a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:label "Form/sjanger"@nb ,
+    "Form/genre"@en ;
+  rdfs:comment "Genre or form."@en ;
+.
+
+# schema:Person
+bs:Person a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  # rdfs:subClassOf foaf:Person ;
+  rdfs:label "Person"@nb ,
+    "Person"@nn ,
+    "Person"@en ;
+  rdfs:comment "Faktisk person (ikke fiktiv)."@nb ;
+.
+
+# schema:Organization
+bs:Corporation a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  # rdfs:subClassOf foaf:Organization ;
+  rdfs:label "Korporasjon"@nb ,
+    "Korporasjon"@nn ,
+    "Corporation"@en ;
+  rdfs:comment "Corporation."@nb ;
+.
+
+bs:Qualifier a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:label "Qualifier"@nb ,
+    "Qualifier"@nn ,
+    "Qualifier"@en ;
+  rdfs:comment "Qualifer"@en ;
+.
+
+bs:Law a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:label "Lov"@nb ,
+    "Lov"@nn ,
+    "Law"@en ;
+.
+
+bs:Complex a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:label "Emnestreng"@nb ,
+    "Emnestreng"@nn ,
+    "Complex concept"@en ;
+.
+
+bs:ddk5 a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "DDK5-nr."@nb ,
+    "DDK5 number"@en ;
+.
+
+bs:webdewey a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "WebDewey-nr. (godkjent)"@nb ,
+    "WebDewey number (approved)"@en ;
+.
+
+bs:itemCount a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Antall dokumenter"@nb ,
+    "Number of documents"@en ;
+  rdfs:comment "Number of linked documents in Bibbi."@en ;
+.

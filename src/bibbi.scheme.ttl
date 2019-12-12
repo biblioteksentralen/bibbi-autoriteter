@@ -1,0 +1,53 @@
+@prefix cc: <http://creativecommons.org/ns#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix mads: <http://www.loc.gov/mads/rdf/v1#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix lexvo: <http://lexvo.org/id/iso639-3/> .
+@prefix void: <http://rdfs.org/ns/void#> .
+@prefix sd: <http://www.w3.org/ns/sparql-service-description#> .
+@prefix nkos: <http://w3id.org/nkos#> .
+@prefix isothes: <http://purl.org/iso25964/skos-thes#> .
+@prefix schema: <http://schema.org/> .
+@prefix bibbi: <http://id.bibbi.dev/> .
+@prefix group: <http://id.bibbi.dev/group/> .
+@prefix bs: <http://schema.bibbi.dev/> .
+
+bibbi: a skos:ConceptScheme, void:Dataset, sd:Graph ;
+    rdfs:label "Bibbi autoriteter"@nb , "Bibbi autoritetar"@nn ;
+    dcterms:title "Bibbi autoriteter"@nb , "Bibbi autoritetar"@nn ;
+    dcterms:description "Bibbi authorities is Biblioteksentralen's authority file covering topics, people, corporations and soon works."@en,
+        "Bibbi autoriteter er Biblioteksentralens samlede autoritetsfil for emneord, personer, korporasjoner, stedsnavn og på sikt verk."@nb ,
+        "Bibbi autoritetar er Biblioteksentralens samla autoritetsfil for emneord, personar, korporasjonar, stadsnamn og på sikt verk."@nb ;
+    dcterms:publisher bibbi:1166735 ;
+    dcterms:creator bibbi:1166735 ;
+    owl:sameAs <http://id.loc.gov/vocabulary/subjectSchemes/bibbi> ,
+        <http://www.wikidata.org/entity/Q4903496> ;
+    dcterms:language lexvo:nno,
+        lexvo:nob ;
+    dcterms:type <http://purl.org/dc/dcmitype/Dataset>,
+        <http://w3id.org/nkos/nkostype#subject_heading_scheme> .
+
+bibbi:1166735 a foaf:Organization, schema:Organization ;
+    rdfs:label "Biblioteksentralen"@en,
+        "Biblioteksentralen"@nb ,
+        "Biblioteksentralen"@nn ;
+    owl:sameAs <http://www.wikidata.org/entity/Q4903496> ,
+        <http://viaf.org/viaf/229233924> .
+
+group:place a isothes:ConceptGroup, skos:Collection ;
+  skos:prefLabel "Steder"@nb, "Stadar"@nn, "Places"@en .
+
+group:topic a isothes:ConceptGroup, skos:Collection ;
+  skos:prefLabel "Emner"@nb, "Emne"@nn, "Topics"@en .
+
+group:corporation a isothes:ConceptGroup, skos:Collection ;
+  skos:prefLabel "Korporasjoner"@nb, "Korporasjonar"@nn, "Corporations"@en .
+
+group:person a isothes:ConceptGroup, skos:Collection ;
+  skos:prefLabel "Personer"@nb, "Personar"@nn, "Persons"@en .
