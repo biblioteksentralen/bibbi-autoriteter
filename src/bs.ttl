@@ -118,6 +118,15 @@ bs:webdewey a rdf:Property , owl:DatatypeProperty ;
     "WebDewey number (approved)"@en ;
 .
 
+
+bs:webdeweyDraft a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "WebDewey-nr. (ikke-godkjent)"@nb ,
+    "WebDewey number (non-approved)"@en ;
+.
+
 bs:itemCount a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;

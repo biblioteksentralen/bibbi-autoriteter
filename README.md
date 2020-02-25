@@ -10,8 +10,6 @@
 
 - Biautoriteter har samme Felles_ID, men ulik Bibsent_ID
 
-
-
 ### URI-er
 
 Inspirasjon: https://wiki.dnb.de/display/DINIAGKIM/URI-Design-Empfehlungen

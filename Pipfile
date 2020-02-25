@@ -4,19 +4,22 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pylint = "*"
 
 [packages]
 pandas = "*"
 openpyxl = "*"
 rdflib = "*"
 pyyaml = "*"
-pyodbc = "*"
 skosify = {git = "https://github.com/NatLibFi/Skosify.git"}
 rtyaml = "*"
 psutil = "*"
 otsrdflib = "*"
 pytest = "*"
 pytest-testdox = "*"
+feather-format = "*"
+python-dotenv = "*"
+pyodbc = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"

@@ -3,9 +3,9 @@
 from distutils.core import setup
 
 setup(
-    name='Bibsent',
+    name='bibbi',
     version='0.1',
-    packages=['bibsent'],
+    packages=['bibbi'],
     description='Conversion scripts for Biblioteksentralen',
     license='GPLv3+',
     author='Dan Michael O. Heggø',

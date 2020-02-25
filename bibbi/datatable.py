@@ -1,5 +1,6 @@
 import logging
 import sys
+from copy import copy
 import functools
 import pandas as pd
 import feather
@@ -32,8 +33,9 @@ class DataTable:
                 value = None
             return value
 
+        log.info('Retrieving records from %s', self.table_name)
         with db.cursor() as cursor:
-            cursor.execute('SELECT * FROM dbo.%s WHERE approved=1' % self.table_name)
+            cursor.execute('SELECT * FROM dbo.%s WHERE Approved=1 AND Bibsent_ID IS NOT NULL' % self.table_name)
             columns = [column[0] for column in cursor.description]
             columns = [self.columns[c] for c in columns]
             rows = []
@@ -45,13 +47,18 @@ class DataTable:
             df = self.validate(df)
             df.set_index('bibsent_id', drop=False, inplace=True)
 
+        log.info('Retrieving document counts for %s', self.table_name)
         with db.cursor() as cursor:
             cursor.execute("""SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
-                LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode = '%(field_code)s'
+                LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
                 LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
-                WHERE a.approved = 1
+                WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
                 GROUP BY a.Bibsent_ID
-            """ % {'table': self.table_name, 'id_field': self.id_field, 'field_code': self.field_code})
+            """ % {
+                'table': self.table_name,
+                'id_field': self.id_field,
+                'field_codes': ', '.join(["'%s'" % field_code for field_code in self.field_codes]),
+            })
             rows = []
             for row in cursor:
                 row = [trim(to_str(c)) for c in row]
@@ -81,17 +88,32 @@ class DataTable:
         df.created = pd.to_datetime(df.created)
         df.modified = pd.to_datetime(df.modified)
         rows_before = df.shape[0]
-        rows_after = rows_before
+        rows_after = 0
         df = df[df.apply(self.validate_row, axis=1)]
         ids = set(df.row_id.tolist())
-        for index, row in df.iterrows():
-            if pd.notnull(row.ref_id) and row.ref_id not in ids:
-                log.warning('Row %s refers to non-existing row %s', row.row_id, row.ref_id)
-                df = df.drop(index)
-            if pd.notnull(row.ref_id) and row.ref_id == row.row_id:
-                log.warning('Row %s refers to itself.', row.row_id)
-                df = df.drop(index)
-            rows_after = df.shape[0]
+
+        df_refs = df[df.ref_id.notnull()]
+        refs = dict(zip(df_refs.row_id, df_refs.ref_id))
+        invalid = set()
+        for n in range(3):
+            # If A -> B and B -> NULL, the first pass will mark B as invalid
+            # and the second pass will mark A as invalid.
+            # We also self-references (A -> A)
+            log.info('Validating: Pass %d' % n)
+            n1 = len(invalid)
+            for k, v in refs.items():
+                if k == v or v not in ids or v in invalid:
+                    invalid.add(k)
+                    # del refs[k]
+            n2 = len(invalid)
+            print('Invalid from %d to %d' % (n1, n2))
+
+        print('%d out of %d refs were invalid ' % (len(invalid), len(refs)))
+
+        # Remove all invalid rows
+        df = df[~df.row_id.isin(list(invalid))]
+
+        rows_after = df.shape[0]
         if rows_before == rows_after:
             log.info('Validated dataframe for %s', self.table_name)
         else:
@@ -138,7 +160,7 @@ class TopicTable(DataTable):
     entity_type = 'topic'
     table_name = 'AuthorityTopic'
     id_field = 'AuthID'
-    field_code = '650'
+    field_codes = ['650']
     columns = {
         'AuthID': 'row_id',  # Lokal id for denne tabellen
         'Title': 'label',  # Emne ($a), 13439 unike verdier
@@ -186,7 +208,7 @@ class GeographicTable(DataTable):
     entity_type = 'geographic'
     table_name = 'AuthorityGeographic'
     id_field = 'TopicID'
-    field_code = '651'
+    field_codes = ['651']
     columns = {
         'TopicID': 'row_id',                         # Lokal ID for tabellen
         'GeoName': 'label',                      # Emne ($a), 13439 unike verdier
@@ -229,7 +251,7 @@ class CorporationTable(DataTable):
     entity_type = 'corporation'
     table_name = 'AuthorityCorp'
     id_field = 'CorpID'
-    field_code = '610'
+    field_codes = ['110', '610', '710']
     columns = {
         'CorpID': 'row_id',
         'CorpName': 'label',
@@ -242,19 +264,19 @@ class CorporationTable(DataTable):
         'CorpDetail': 'detail',  # (Forklarende parentes)
         'CorpDetail_N': 'detail_nn',  #
         'SortingTitle': 'sorting_title',
-        'TopicTitle': 'title',  # $t Title of a work? Brukt om lover
+        'TopicTitle': 'work_title',  # $t Title of a work? Brukt om lover og musikkalbum
         'SortingSubTitle': 'sorting_subtitle',  #
-        'UnderTopic': 'sub_topic',
+        'UnderTopic': 'sub_topic',                 # Underinndeling ($x), med –
         'UnderTopic_N': 'sub_topic_nn',
-        'Qualifier': 'qualifier',
-        'Qualifier_N': 'qualifier_nn',
+        'Qualifier': 'qualifier',  # : kvalifikator ($0 i NORMARC)
+        'Qualifier_N': 'qualifier_nn',  #
         'DeweyNr': 'ddk5_nr',
         'TopicDetail': 'detail_topic',
         'TopicLang': 'topic_lang',  # (ikke i bruk, ser ut til å være generert)
         'MusicNr': 'music_nr',
         'MusicCast': 'music_cast',
-        'Arrangment': 'arrangement',
-        'ToneArt': 'tone_art',
+        'Arrangment': 'music_arr',
+        'ToneArt': 'music_key',
         'FieldCode': 'field_code',
         'Security_ID': 'security_id',
         'UserID': 'userid',
@@ -279,7 +301,7 @@ class CorporationTable(DataTable):
         'NB_Origin': 'nb_origin',     # 'adabas'
         'Bibsent_ID': 'bibsent_id',   # Verdi for $0
         'Felles_ID': 'felles_id',     # Felles ID når vi har både hoved- og biautoriteter
-        'MainPerson': 'main_record',  # (bool) hovedpost? (Hvis vi har flere bibsent-poster kobla til én BARE-post)
+        'MainPerson': 'main_record',  # (bool) hovedautoritet eller biautoritet
         'Origin': 'origin',
         'KatStatus': 'kat_status',
         'Comment': 'comment',
@@ -287,3 +309,70 @@ class CorporationTable(DataTable):
         'Handle_ID': 'handle_id',
     }
 
+
+class PersonTable(DataTable):
+    entity_type = 'person'
+    table_name = 'AuthorityPerson'
+    id_field = 'PersonId'
+    field_codes = ['100', '600', '700']
+    columns = {
+        'PersonId': 'row_id',
+        'PersonName': 'label', # $a Personal name
+        'PersonNr': 'numeration',  # $b Numeration
+        'PersonTitle': 'title',  # $c Titles and other words associated with a name
+        'PersonTitle_N': 'title_nn', #
+        'PersonYear': 'date',  # $d Dates associated with name
+        'PersonNation': 'nationality',
+        'SortingTitle': 'sorting_title',
+        'MusicCast': 'music_cast',
+        'MusicNr': 'music_nr',
+        'Arrangment': 'music_arr',
+        'Toneart': 'music_key',
+        'TopicTitle': 'work_title', # $t - Title of a work / Tittel for dokument som emne
+        'SortingSubTitle': 'sorting_subtitle',
+        'UnderTopic': 'sub_topic',                 # Underinndeling ($x), med –
+        'UnderTopic_N': 'sub_topic_nn',
+        'Qualifier': 'qualifier',  # : kvalifikator ($0 i NORMARC)
+        'Qualifier_N': 'qualifier_nn',  #
+        'UnderMainText': 'work_title_part',  # $p Name of part/section of a work / Tittel for del av verk
+        'LanguageText': 'work_lang',  # $l Language of a work
+        'DeweyNr': 'ddk5_nr',
+        'TopicLang': 'topic_lang',  # (ikke i bruk, ser ut til å være generert)
+        'IssnNr': 'issn_nr',  # Why?? Ikke i bruk
+        'FieldCode': 'field_code',
+        'Security_ID': 'security_id',
+        'UserID': 'userid',
+        'LastChanged': 'modified',
+        'Created': 'created',
+        'Approved': 'approved',
+        'ApproveDate': 'approve_date',
+        'ApprovedUserID': 'approved_by',
+        '_DisplayValue': 'display_value',
+        'BibbiNr': 'bibbi_nr',
+        'NotInUse': 'not_in_use',
+        'Reference': 'ref',
+        'ReferenceNr': 'ref_id',
+        'Source': 'source',
+        'bibbireferencenr': 'bibi_ref_nr',
+
+        'PersonForm': 'person_form',
+        'NotNovelette': 'not_novelette',
+
+        'WebDeweyNr': 'webdewey_nr',
+        'WebDeweyApproved': 'webdewey_approved',
+        'WebDeweyKun': 'webdewey_kun',
+        'Bibsent_ID': 'bibsent_id',   # Verdi for $0
+        'Felles_ID': 'felles_id',     # Felles ID når vi har både hoved- og biautoriteter
+
+        'NB_ID': 'nb_id',             # BARE-ID
+        'NB_PersonNation': 'nb_person_nation',
+        'NB_Origin': 'nb_origin',     # 'adabas'
+
+        'MainPerson': 'main_record',  # (bool) hovedautoritet eller biautoritet
+        'Comment': 'comment',
+
+        'Origin': 'origin',
+        'KatStatus': 'kat_status',
+        'Gender': 'gender',
+        'Handle_ID': 'handle_id',
+    }

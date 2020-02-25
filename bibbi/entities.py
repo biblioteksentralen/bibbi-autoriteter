@@ -16,6 +16,7 @@ QUA_DELIM = ' : '
 TYPE_TOPIC = 'topic'
 TYPE_GEOGRAPHIC = 'geographic'
 TYPE_CORPORATION = 'corporation'
+TYPE_PERSON = 'person'
 TYPE_QUALIFIER = 'qualifier'
 TYPE_COMPLEX = 'complex'
 TYPE_LAW = 'law'
@@ -124,18 +125,28 @@ class DataRow:
         self.row = row
         self.type = type
 
-    def is_main_entry(self):
-        if pd.notnull(self.row.qualifier) or pd.notnull(self.row.sub_topic):
-            return False
-        if self.type != TYPE_GEOGRAPHIC and pd.notnull(self.row.sub_geo):
-            return False
-        return True
-
     def __getattr__(self, item):
         return getattr(self.row, item)
 
     def __getitem__(self, item):
         return getattr(self.row, item)
+
+    def get(self, *keys):
+        # Fallback chain, get first non-null value
+        for key in keys:
+            try:
+                value = getattr(self.row, key)
+                if pd.notnull(value):
+                    return value
+            except AttributeError:
+                pass
+
+    def is_main_entry(self):
+        if self.get('qualifier') or self.get('sub_topic'):
+            return False
+        if self.type != TYPE_GEOGRAPHIC and self.get('sub_geo'):
+            return False
+        return True
 
     def get_subdivisions(self, subdiv_type: str):
         """
@@ -144,13 +155,13 @@ class DataRow:
         Args:
             subdiv_type (str): Either 'sub_topic' or 'sub_geo'
         """
-        if subdiv_type != 'sub_geo' and subdiv_type != 'sub_topic':
+        if subdiv_type not in ['sub_geo', 'sub_topic', 'sub_unit']:
             raise Error('Invalid subdivision type: %s', subdiv_type)
         if pd.isnull(getattr(self.row, subdiv_type)):
             return
         nb_parts = getattr(self.row, subdiv_type).split(' - ')
         nn_parts = []
-        if pd.notnull(getattr(self.row, subdiv_type + '_nn')):
+        if hasattr(self.row, subdiv_type + '_nn') and pd.notnull(getattr(self.row, subdiv_type + '_nn')):
             nn_parts = getattr(self.row, subdiv_type + '_nn').split(' - ')
         for k, part in enumerate(nb_parts):
             if len(nb_parts) == len(nn_parts):
@@ -168,13 +179,13 @@ class DataRow:
         # 1. Navn ($a)
         label = {
             'nb': self.row.label,
-            'nn': self.fallback_chain(self.row.label_nn, self.row.label)
+            'nn': self.get('label_nn', 'label')
         }
 
         # 2. Forklarende tilføyelse i parentes ($q)
-        if pd.notnull(self.row.detail):
+        if self.get('detail'):
             label['nb'] += ' (%s)' % self.row.detail
-            label['nn'] += ' (%s)' % self.fallback_chain(self.row.detail_nn, self.row.detail)
+            label['nn'] += ' (%s)' % self.get('detail_nn', 'detail')
 
         return {'label': label, 'entity_type': self.type, 'entity_id': None}
 
@@ -202,11 +213,65 @@ class DataRow:
             out['nn'] += ' (%s)' % ', '.join([x['nn'] for x in parts[::-1]])
         return {'label': out, 'entity_type': TYPE_GEOGRAPHIC, 'entity_id': None}
 
+    def  get_corporate_label(self):
+        # Returns the corporate name components (X10 $a, $b or $t) of this subject heading
+        # combined into a single component, or None if there is no corporate name part.
+        if self.type != TYPE_CORPORATION:
+            return None
+
+        label = self.get_main_component()['label']
+
+        for lab in self.get_subdivisions('sub_unit'):
+            label['nb'] = '%s (%s)' % (lab['nb'], label['nb'])
+            label['nn'] = '%s (%s)' % (lab['nn'], label['nn'])
+
+        if pd.notnull(self.work_title):
+            # Tittel på lover og musikkalbum (nynorsk-variant finnes ikke)
+            label['nb'] = '%s (%s)' % (self.work_title, label['nb'])
+            label['nn'] = '%s (%s)' % (self.work_title, label['nn'])
+
+        return label
+
+    def  get_person_label(self):
+        # Returns the person name components (X00 $a, $b or $t) of this subject heading
+        # combined into a single component, or None if there is no person name part.
+        if self.type != TYPE_PERSON:
+            return None
+
+        label = self.get_main_component()['label']
+
+        if numeration := self.get('numeration'):
+            label['nb'] += ' ' + numeration
+            label['nn'] += ' ' + numeration
+
+        # OBS, OBS: Ikke bare enkeltpersoner. Typ "slekten", "familien"
+
+        # if title_nb := self.get('title'):
+        #     label['nb'] += ' ' + title_nb
+        #     label['nn'] += ' ' + self.get('title_nn', 'title')
+
+
+        # 'PersonYear': 'date',  # $d Dates associated with name
+        # 'PersonNation': 'nationality',
+
+        # TODO: ....
+
+        # for lab in self.get_subdivisions('sub_unit'):
+        #     label['nb'] = '%s (%s)' % (lab['nb'], label['nb'])
+        #     label['nn'] = '%s (%s)' % (lab['nn'], label['nn'])
+
+        # if pd.notnull(self.work_title):
+        #     # Tittel på lover og musikkalbum (nynorsk-variant finnes ikke)
+        #     label['nb'] = '%s (%s)' % (self.work_title, label['nb'])
+        #     label['nn'] = '%s (%s)' % (self.work_title, label['nn'])
+
+        return label
+
     def get_qualifier_component(self):
         if pd.notnull(self.row.qualifier):
             label = {
                 'nb': self.row.qualifier,
-                'nn': self.fallback_chain(self.row.qualifier_nn, self.row.qualifier),
+                'nn': self.get('qualifier_nn', 'qualifier'),
             }
             return {'label': label, 'entity_type': TYPE_QUALIFIER, 'entity_id': None}
         return None
@@ -222,35 +287,48 @@ class DataRow:
         for component in as_generator(self.get_qualifier_component()):
             yield component
 
-    @staticmethod
-    def fallback_chain(*values):
-        for value in values:
-            if pd.notnull(value):
-                return value
-
-    def get_label(self, include_subdivisions=True):
+    def get_label(self, include_subdivisions=True, label_transforms=True):
 
         row = self.row
 
         label = self.get_main_component()['label']
 
+        if include_subdivisions and not label_transforms:
+            if self.get('sub_geo'):
+                label['nb'] += SUB_DELIM + row.sub_geo
+                label['nn'] += SUB_DELIM + self.get('sub_geo_nn', 'sub_geo')
+
+            # Generell underinndeling ($x)
+            if self.get('sub_topic'):
+                label['nb'] += SUB_DELIM + row.sub_topic  # Merk: Kan bestå av flere ledd adskilt av -
+                label['nn'] += SUB_DELIM + self.get('sub_topic_nn', 'sub_topic')
+
+            # Tittel på lover og musikkalbum
+            if self.type == TYPE_CORPORATION and pd.notnull(row.work_title):
+                label['nb'] += SUB_DELIM + row.work_title
+                label['nn'] += SUB_DELIM + row.work_title
+
+            # Kolon-kvalifikator (Blir litt gæren av disse!)
+            if self.get('qualifier'):
+                label['nb'] += QUA_DELIM + row.qualifier
+                label['nn'] += QUA_DELIM + self.get('qualifier_nn', 'qualifier')
+
+            return label
+
         # -----------------------------------------------------------------------------------
         # Spesialtilfeller:
 
-        # Spesialtilfelle 1: Geografiske underinndelinger for geografiske emneord
+        # Spesialtilfelle 1: Geografiske emneord (655): $a og $z kombineres
         if self.type == TYPE_GEOGRAPHIC:
             label = self.get_geographic_component()['label']
 
-        # Spesialtilfelle 2: Tittel på verk (typisk musikkalbum).
-        # Merk: Lover håndterer vi separat, se under.
-        if self.type == TYPE_CORPORATION and pd.notnull(row.title) and row.law != '1':
-            label['nb'] += SUB_DELIM + row.title
-            label['nn'] += SUB_DELIM + row.title
+        # Spesialtilfelle 2: Personer (X00): $a, $b, $t kombineres
+        if self.type == TYPE_PERSON:
+            label = self.get_person_label()
 
-        # Spesialtilfelle 3: Lover
-        if self.type == TYPE_CORPORATION and pd.notnull(row.title) and row.law == '1':
-            label['nb'] = '%s (%s)' % (row.title, label['nb'])
-            label['nn'] = '%s (%s)' % (row.title, label['nn'])
+        # Spesialtilfelle 3: Korporasjoner (X10): $a, $b, $t kombineres
+        if self.type == TYPE_CORPORATION:
+            label = self.get_corporate_label()
 
         if not include_subdivisions:
             return label
@@ -259,23 +337,23 @@ class DataRow:
         # Underinndelinger
 
         # Geografisk underinndeling ($z)
-        if pd.notnull(row.sub_geo) and self.type != TYPE_GEOGRAPHIC:
+        if self.get('sub_geo') and self.type != TYPE_GEOGRAPHIC:
             geo_label = self.get_geographic_component()['label']
             label['nb'] += SUB_DELIM + geo_label['nb']
             label['nn'] += SUB_DELIM + geo_label['nn']
 
         # Generell underinndeling ($x)
-        if pd.notnull(row.sub_topic):
+        if self.get('sub_topic'):
             label['nb'] += SUB_DELIM + row.sub_topic  # Merk: Kan bestå av flere ledd adskilt av -
-            label['nn'] += SUB_DELIM + self.fallback_chain(row.sub_topic_nn, row.sub_topic)
+            label['nn'] += SUB_DELIM + self.get('sub_topic_nn', 'sub_topic')
 
         # Kolon-kvalifikator (Blir litt gæren av disse!)
-        if pd.notnull(row.qualifier):
+        if self.get('qualifier'):
             label['nb'] += QUA_DELIM + row.qualifier
-            label['nn'] += QUA_DELIM + self.fallback_chain(row.qualifier_nn, row.qualifier)
+            label['nn'] += QUA_DELIM + self.get('qualifier_nn', 'qualifier')
 
-            # entity.set_label('preferred_label', row.topic_title, 'nn')   # ???
-            # OBS: Alle lovene har samme Felles_ID !! De er altså alle biautoriteter uten en hovedautoritet
+        # entity.set_label('preferred_label', row.work_title, 'nn')   # ???
+        # OBS: Alle lovene har samme Felles_ID. De er altså alle biautoriteter uten en hovedautoritet
 
         return label
 
@@ -350,20 +428,22 @@ class Entities:
     def __len__(self):
         return len(self._items)
 
-    def import_dataframe(self, df, entity_type):
+    def import_dataframe(self, df, entity_type, label_transforms: True, component_extraction: True):
         # Construct objets from a dataframe
         self.references.extend_from_df(df)
+        n = 0
         for row in df.itertuples():  # Note: itertuples is *much* faster than iterrows! Cut loading time from 28s to 4s
-            self.import_row(DataRow(row, entity_type))
+            if self.import_row(DataRow(row, entity_type), label_transforms, component_extraction):
+                n += 1
 
-        log.info('Constructed objects of type %s', entity_type)
+        log.info('Constructed %d entities of type "%s"', n, entity_type)
 
-    def import_row(self, row: DataRow):
+    def import_row(self, row: DataRow, label_transforms=True, component_extraction=True):
         # Create an Entity object from a row
 
         # -----------------------------------------------------------
         # Construct the formatted labels
-        label = row.get_label()
+        label = row.get_label(label_transforms=label_transforms)
 
         # -----------------------------------------------------------
         # If the row is a reference, add the labels to the concept it refers
@@ -372,7 +452,7 @@ class Entities:
         if refers_to is not None:
             refers_to.add_label('alternative_labels', label['nb'], 'nb')
             refers_to.add_label('alternative_labels', label['nn'], 'nn')
-            return
+            return False
 
         # -----------------------------------------------------------
 
@@ -384,49 +464,53 @@ class Entities:
         if pd.notnull(row.item_count):
             entity.set('item_count', row.item_count)
 
-        if row.type == TYPE_CORPORATION and pd.notnull(row.title) and row.law == '1':
+        if row.type == TYPE_CORPORATION and pd.notnull(row.work_title) and row.law == '1':
             entity.set('type', TYPE_LAW)
             jurisdiction = {'nb': row.label, 'nn': row.label_nn or row.label}
             entity.set('jurisdiction', jurisdiction)
-            # entity.set_label('preferred_label', row.topic_title, 'nn')   # ???
+            # entity.set_label('preferred_label', row.work_title, 'nn')   # ???
             # OBS: Alle lovene har samme Felles_ID !! De er altså alle biautoriteter uten en hovedautoritet?
 
         for key in ['ddk5_nr', 'webdewey_nr', 'webdewey_approved', 'created', 'modified']:
             if pd.notnull(row[key]):
                 entity.set(key, row[key])
 
-        for component in row.get_components():
-            entity.add('components', component)
-
-        # Add all the entities we know about as components first, so that the IDs can be
-        # looked up when we run `make_component_entities()` later on.
-        if row.is_main_entry():
-            if self.components.has(row.type, label['nb']):
-                other_id = self.components.get(row.type, label['nb'])
-                other = self.get(other_id)
-
-                log.warning('CONFLICT: "%s"/%s found in OTHER(%s, wd-approved: %s, count: %s) and THIS(%s, wd-approved: %s, count: %s)',
-                    label['nb'],
-                    row.type,
-                    other.id,
-                    other.webdewey_approved,
-                    other.item_count,
-                    row.bibsent_id,
-                    row.webdewey_approved,
-                    row.item_count
-                )
-                if row.item_count > other.item_count:
-                    # Overwrite
-                    self.components.set(row.type, label['nb'], row.bibsent_id, True)
-                elif other.webdewey_approved == '0' and row.webdewey_approved == '1':
-                    # Overwrite
-                    self.components.set(row.type, label['nb'], row.bibsent_id, True)
-
-            else:
-                self.components.set(row.type, label['nb'], row.bibsent_id)
-            # self.label_ids[row.type][labels['nb']] = row.bibsent_id
-        else:
+        if not row.is_main_entry():
             entity.set('type', TYPE_COMPLEX)
+
+        if component_extraction:
+
+            for component in row.get_components():
+                entity.add('components', component)
+
+            # Add all the entities we know about as components first, so that the IDs can be
+            # looked up when we run `make_component_entities()` later on.
+            if row.is_main_entry():
+                if self.components.has(row.type, label['nb']):
+                    other_id = self.components.get(row.type, label['nb'])
+                    other = self.get(other_id)
+
+                    log.warning('CONFLICT: "%s"/%s found in OTHER(%s, wd-approved: %s, count: %s) and THIS(%s, wd-approved: %s, count: %s)',
+                        label['nb'],
+                        row.type,
+                        other.id,
+                        other.webdewey_approved,
+                        other.item_count,
+                        row.bibsent_id,
+                        row.webdewey_approved,
+                        row.item_count
+                    )
+                    if row.item_count > other.item_count:
+                        # Overwrite
+                        self.components.set(row.type, label['nb'], row.bibsent_id, True)
+                    elif other.webdewey_approved == '0' and row.webdewey_approved == '1':
+                        # Overwrite
+                        self.components.set(row.type, label['nb'], row.bibsent_id, True)
+
+                else:
+                    self.components.set(row.type, label['nb'], row.bibsent_id)
+                # self.label_ids[row.type][labels['nb']] = row.bibsent_id
+        return True
 
     def make_component_entity(self, entity_type, label, entity_id=None):
         if entity_id is None:
@@ -458,7 +542,7 @@ class Entities:
 class Label:
 
     def __init__(self, value, lang):
-        self.value = value
+        self.value = value[0].upper() + value[1:]
         self.lang = lang
 
 

@@ -11,10 +11,6 @@ log = logging.getLogger(__name__)
 # namespaces: bibbi eller bibsent ?
 ISOTHES = Namespace('http://purl.org/iso25964/skos-thes#')
 ONTO = Namespace('http://schema.bibbi.dev/')
-ENTITIES = Namespace('http://id.bibbi.dev/')
-GROUPS = Namespace('http://id.bibbi.dev/group/')
-CONCEPT_SCHEME = URIRef('http://id.bibbi.dev/')
-
 
 class Graph:
 
@@ -24,7 +20,12 @@ class Graph:
         ISOTHES.ThesaurusArray,
     ]
 
-    def __init__(self):
+    def __init__(self, entity_space, concept_scheme, group_space):
+
+        self.scheme_uri = URIRef(concept_scheme)
+        self.entity_ns = Namespace(entity_space)
+        self.group_ns = Namespace(group_space)
+
         # Note to self: Memory store is slightly faster than IOMemory store, but we cannot load turtle files into it,
         # so just use the more convenient IOMemory store for now.
         # rdflib.plugin.register('Memory', rdflib.store.Store,
@@ -33,7 +34,7 @@ class Graph:
 
     @staticmethod
     def uri(entity):
-        return ENTITIES[entity.id]
+        return self.entity_ns[entity.id]
 
     @staticmethod
     def webdewey_uri(entity):
@@ -73,31 +74,31 @@ class Graph:
         types = {
             'topic': {
                 'uri': ONTO.Topic,
-                'group': GROUPS.topic,
+                'group': self.group_ns.topic,
             },
             'geographic': {
                 'uri': ONTO.Place,
-                'group': GROUPS.place,
+                'group': self.group_ns.place,
             },
             'corporation': {
                 'uri': ONTO.Corporation,
-                'group': GROUPS.corporation,
+                'group': self.group_ns.corporation,
             },
             'person': {
                 'uri': ONTO.Person,
-                'group': GROUPS.person,
+                'group': self.group_ns.person,
             },
             'qualifier':{
                 'uri': ONTO.Qualifier,
-                'group': GROUPS.qualifier,
+                'group': self.group_ns.qualifier,
             },
             'complex': {
                 'uri': ONTO.Complex,
-                'group': GROUPS.complex,
+                'group': self.group_ns.complex,
             },
             'law': {
                 'uri': ONTO.Law,
-                'group': GROUPS.law,
+                'group': self.group_ns.law,
             },
         }
 
@@ -118,7 +119,7 @@ class Graph:
         else:
             self.add(entity, RDF.type, ONTO.Entity)
 
-        self.add(entity, SKOS.inScheme, CONCEPT_SCHEME)
+        self.add(entity, SKOS.inScheme, self.scheme_uri)
 
         for label in entity.preferred_label.values():
             self.add(entity, SKOS.prefLabel, Literal(label.value, label.lang))
@@ -144,8 +145,11 @@ class Graph:
         if entity.ddk5_nr is not None:
             self.add(entity, ONTO.ddk5, Literal(entity.ddk5_nr))
 
-        if entity.webdewey_nr is not None and entity.webdewey_approved == '1':
-            self.add(entity, ONTO.webdewey, Literal(entity.webdewey_nr))
+        if entity.webdewey_nr is not None:
+            if entity.webdewey_approved == '1':
+                self.add(entity, ONTO.webdewey, Literal(entity.webdewey_nr))
+            else:
+                self.add(entity, ONTO.webdeweyDraft, Literal(entity.webdewey_nr))
 
         self.add_entity_mappings(entity)
 
@@ -181,7 +185,7 @@ class Graph:
     def delete_unused(self):
         before = len(self.graph)
         query = """
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
         PREFIX bs: <http://schema.bibbi.dev/>
 
         DELETE {
@@ -193,7 +197,10 @@ class Graph:
                 bs:itemCount 0 ;
                 ?p1 ?o1 .
             OPTIONAL { ?c2 ?p2 ?c . }
-            FILTER NOT EXISTS { ?c3 skos:broader ?c . }
+            FILTER NOT EXISTS {
+                ?c skos:narrower ?c3 .
+                # ?c skos:narrower+ ?c3 ; ?c3 bs:itemCount ?i3 . FILTER(?i3 != 0)
+            }
         }
         """
         self.graph.update(query)

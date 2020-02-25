@@ -1,0 +1,402 @@
+@prefix adms:  <http://www.w3.org/ns/adms#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix voaf:  <http://purl.org/vocommons/voaf#> .
+@prefix frbrer: <http://iflastandards.info/ns/fr/frbr/frbrer/> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc11:  <http://purl.org/dc/elements/1.1/> .
+@prefix nkos:  <http://w3id.org/nkos#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix frsad: <http://iflastandards.info/ns/fr/frsad/> .
+@prefix wdrs:  <http://www.w3.org/2007/05/powder-s#> .
+@prefix dcat:  <http://www.w3.org/ns/dcat#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix dc:    <http://purl.org/dc/terms/> .
+
+dc:format  a                rdf:Property ;
+        rdfs:comment        "The file format, physical medium, or dimensions of the resource."@en ;
+        rdfs:domain         frbrer:Manifestation ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Format"@en ;
+        rdfs:range          dc:MediaTypeOrExtent ;
+        rdfs:subPropertyOf  dc11:format ;
+        dc:description      "Examples of dimensions include size and duration. Recommended best practice is to use a controlled vocabulary such as the list of Internet Media Types [MIME]."@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#formatT-001> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date .
+
+dc:RightsStatement  a     rdfs:Class ;
+        rdfs:comment      "A statement about the intellectual property rights (IPR) held in or over a Resource, a legal document giving official permission to do something with a resource, or a statement about access rights."@en ;
+        rdfs:isDefinedBy  dc: ;
+        rdfs:label        "Rights Statement"@en ;
+        dc:hasVersion     <http://dublincore.org/usage/terms/history/#RightsStatement-001> ;
+        dc:issued         "2008-01-14"^^xsd:date .
+
+dc:subject  a               rdf:Property ;
+        rdfs:comment        "The topic of the resource."@en ;
+        rdfs:domain         frbrer:Work ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Subject"@en ;
+        rdfs:range          frbrer:Thema ;
+        rdfs:subPropertyOf  dc11:subject ;
+        dc:description      "Typically, the subject will be represented using keywords, key phrases, or classification codes. Recommended best practice is to use a controlled vocabulary."@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#subjectT-002> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2012-06-14"^^xsd:date ;
+        skos:note           "Core element"@en , "This term is intended to be used with non-literal values as defined in the DCMI Abstract Model (http://dublincore.org/documents/abstract-model/).  As of December 2007, the DCMI Usage Board is seeking a way to express this intention with a formal range declaration."@en .
+
+<file:///C:/projects/bibbi-aut/src/vocabularies/nkos.rdf#basedOn>
+        a                 owl:ObjectProperty , rdf:Property ;
+        rdfs:comment      "A resource used as the source for a derivative resource."@en ;
+        rdfs:domain       frbrer:Work ;
+        rdfs:isDefinedBy  <http://w3id.org/nkos> ;
+        rdfs:label        "Based On"@en ;
+        rdfs:range        frbrer:Work .
+
+<file:///C:/projects/bibbi-aut/src/vocabularies/nkos.rdf#alignedWith>
+        a                 owl:ObjectProperty , rdf:Property ;
+        rdfs:comment      "A related resource with which the described resource is aligned."@en ;
+        rdfs:domain       frbrer:Expression ;
+        rdfs:isDefinedBy  <http://w3id.org/nkos> ;
+        rdfs:label        "Aligned With"@en ;
+        rdfs:range        frbrer:Expression .
+
+<http://w3id.org/nkos>
+        a                 voaf:Vocabulary , owl:Ontology ;
+        rdfs:comment      "This file specifies the set of RDF classes and properties used in NKOS AP"@en ;
+        dc:contributor    "DCMI NKOS Task Group" ;
+        dc:created        "2014-04-03"^^xsd:date ;
+        dc:creator        "Maja Žumer" , "Marcia L. Zeng" ;
+        dc:issued         "2015-09-20"^^xsd:date ;
+        dc:modified       "2015-09-20"^^xsd:date ;
+        dc:title          "Networked Knowledge Organization Systems Application Profile (NKOS AP)"@en ;
+        wdrs:describedby  <http://nkos.slis.kent.edu/nkos-ap.html> , <http://wiki.dublincore.org/index.php/NKOS_Vocabularies> .
+
+frbrer:P2004  a           rdf:Property ;
+        rdfs:comment      "Relates a manifestation to an expression that is embodied in the manifestation."@en ;
+        rdfs:domain       frbrer:Manifestation ;
+        rdfs:isDefinedBy  frbrer: ;
+        rdfs:label        "Is embodiment of"@en ;
+        rdfs:range        frbrer:Expression ;
+        dc:issued         "2009-12-03"^^xsd:date ;
+        dc:modified       "2012-02-01"^^xsd:date ;
+        skos:note         "Core element"@en .
+
+dc:Agent  a               dc:AgentClass , rdfs:Class ;
+        rdfs:comment      "A resource that acts or has the power to act."@en ;
+        rdfs:isDefinedBy  dc: ;
+        rdfs:label        "Agent"@en ;
+        dc:description    "Examples of Agent include person, organization, and software agent."@en ;
+        dc:hasVersion     <http://dublincore.org/usage/terms/history/#Agent-001> ;
+        dc:issued         "2008-01-14"^^xsd:date .
+
+<file:///C:/projects/bibbi-aut/src/vocabularies/nkos.rdf#sizeNote>
+        a                 owl:ObjectProperty , rdf:Property ;
+        rdfs:comment      "Number of concepts, terms, or other semantic units included in a KOS."@en ;
+        rdfs:domain       frbrer:Expression ;
+        rdfs:isDefinedBy  <http://w3id.org/nkos> ;
+        rdfs:label        "Size Note"@en ;
+        rdfs:range        rdfs:Literal .
+
+adms:sample  a            rdf:Property ;
+        rdfs:comment      "Links to a sample of an Asset (which is itself an Asset)."@en ;
+        rdfs:domain       frbrer:Expression ;
+        rdfs:isDefinedBy  adms: ;
+        rdfs:label        "Sample"@en ;
+        rdfs:range        frbrer:Expression ;
+        skos:note         "A link to a fragment of the resource."@en .
+
+prov:wasDerivedFrom  a    rdf:Property ;
+        rdfs:comment      "A derivation is a transformation of an entity into another, an update of an entity resulting in a new one, or the construction of a new entity based on a pre-existing entity."@en ;
+        rdfs:domain       frbrer:Expression ;
+        rdfs:isDefinedBy  <http://www.w3.org/ns/prov> ;
+        rdfs:label        "Derived From"@en ;
+        rdfs:range        frbrer:Expression ;
+        skos:note         "Derived-From covers relationships between resources such as translation-of, abridgement-of, extension-of, and version-of. It is different from part-of relationship type.  Consult KOS Relation-Type Vocabulary for examples and possible extended properties. http://wiki.dublincore.org/index.php/NKOS_Vocabularies" .
+
+adms:Asset  a             rdfs:Class ;
+        rdfs:comment      "An abstract entity that reflects the intellectual content of the asset and represents those characteristics of the asset that are independent of its physical embodiment."@en ;
+        rdfs:isDefinedBy  adms: ;
+        rdfs:label        "Asset"@en ;
+        dc:description    "Assets can be versioned. Every time the intellectual content of an asset changes, the result is considered to be a new asset that can be linked to previous and next versions of the Asset."@en ;
+        skos:note         "This abstract entity combines the FRBR entities work (a distinct intellectual or artistic creation) and expression (the intellectual or artistic realization of a work) [ FRBR ]."@en .
+
+dc:created  a               rdf:Property ;
+        rdfs:comment        "Date of creation of the resource."@en ;
+        rdfs:domain         frbrer:Expression , frbrer:Work ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Date Created"@en ;
+        rdfs:range          rdfs:Literal ;
+        rdfs:subPropertyOf  dc11:date , dc:date ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#created-003> ;
+        dc:issued           "2000-07-11"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date ;
+        skos:note           "Core element. For the date of a manifestation, use dct:issued"@en .
+
+dc:creator  a                   rdf:Property ;
+        rdfs:comment            "An entity primarily responsible for making the resource."@en ;
+        rdfs:domain             frbrer:Work , frbrer:Expression , frbrer:Manifestation ;
+        rdfs:isDefinedBy        dc: ;
+        rdfs:label              "Creator"@en ;
+        rdfs:range              dc:Agent ;
+        rdfs:subPropertyOf      dc:contributor , dc11:creator ;
+        dc:description          "Examples of a Creator include a person, an organization, or a service."@en ;
+        dc:hasVersion           <http://dublincore.org/usage/terms/history/#creatorT-002> ;
+        dc:issued               "2008-01-14"^^xsd:date ;
+        dc:modified             "2010-10-11"^^xsd:date ;
+        owl:equivalentProperty  <http://xmlns.com/foaf/0.1/maker> ;
+        skos:note               "Core element"@en .
+
+dc:AgentClass  a          rdfs:Class ;
+        rdfs:comment      "A group of agents."@en ;
+        rdfs:isDefinedBy  dc: ;
+        rdfs:label        "Agent Class"@en ;
+        rdfs:subClassOf   rdfs:Class ;
+        dc:description    "Examples of Agent Class include groups seen as classes, such as students, women, charities, lecturers."@en ;
+        dc:hasVersion     <http://dublincore.org/usage/terms/history/#AgentClass-003> ;
+        dc:issued         "2008-01-14"^^xsd:date ;
+        dc:modified       "2012-06-14"^^xsd:date .
+
+dc:title  a                 rdf:Property ;
+        rdfs:comment        "A name given to the resource."@en ;
+        rdfs:domain         frbrer:Manifestation , frbrer:Expression , frbrer:Work ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Title"@en ;
+        rdfs:range          rdfs:Literal ;
+        rdfs:subPropertyOf  dc11:title ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#titleT-002> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2010-10-11"^^xsd:date ;
+        skos:note           "Core element"@en .
+
+dc:relation  a              rdf:Property ;
+        rdfs:comment        "A related resource."@en ;
+        rdfs:domain         frbrer:Manifestation , frbrer:Expression , frbrer:Work ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Relation"@en ;
+        rdfs:range          frbrer:Manifestation , frbrer:Work , frbrer:Expression ;
+        rdfs:subPropertyOf  dc11:relation ;
+        dc:description      "Recommended best practice is to identify the related resource by means of a string conforming to a formal identification system. "@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#relationT-001> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date ;
+        skos:note           "This term is intended to be used with non-literal values as defined in the DCMI Abstract Model (http://dublincore.org/documents/abstract-model/).  As of December 2007, the DCMI Usage Board is seeking a way to express this intention with a formal range declaration."@en .
+
+<file:///C:/projects/bibbi-aut/src/vocabularies/nkos.rdf#updateFrequency>
+        a                 owl:ObjectProperty , rdf:Property ;
+        rdfs:comment      "The period in which a KOS is typically updated."@en ;
+        rdfs:domain       frbrer:Expression ;
+        rdfs:isDefinedBy  <http://w3id.org/nkos> ;
+        rdfs:label        "Update Frequency "@en ;
+        rdfs:range        rdfs:Literal ;
+        dc:description    "Suggest using DCMI Collection Description Frequency Vocabulary. (http://dublincore.org/groups/collections/frequency/) ."@en .
+
+dc:publisher  a             rdf:Property ;
+        rdfs:comment        "An entity responsible for making the resource available."@en ;
+        rdfs:domain         frbrer:Manifestation ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Publisher"@en ;
+        rdfs:range          dc:Agent ;
+        rdfs:subPropertyOf  dc11:publisher ;
+        dc:description      "Examples of a Publisher include a person, an organization, or a service."@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#publisherT-001> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2010-10-11"^^xsd:date .
+
+dc:identifier  a            rdf:Property ;
+        rdfs:comment        "An unambiguous reference to the resource within a given context."@en ;
+        rdfs:domain         frbrer:Work , frbrer:Expression , frbrer:Manifestation ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Identifier"@en ;
+        rdfs:range          rdfs:Literal ;
+        rdfs:subPropertyOf  dc11:identifier ;
+        dc:description      "Recommended best practice is to identify the resource by means of a string conforming to a formal identification system. "@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#identifierT-001> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date ;
+        skos:note           "Core element"@en .
+
+frbrer:C1003  a           rdfs:Class ;
+        rdfs:comment      "The physical embodiment of an expression of a work."@en ;
+        rdfs:isDefinedBy  frbrer: ;
+        rdfs:label        "Manifestation"@en ;
+        dc:issued         "2009-12-11"^^xsd:date ;
+        dc:modified       "2010-04-11"^^xsd:date ;
+        skos:note         "Examples are: the printed edition of a thesaurus' 2010 English version, the SKOS Linked Data representation of the same version."@en .
+
+dc:type  a                  rdf:Property ;
+        rdfs:comment        "The nature or genre of the resource."@en ;
+        rdfs:domain         frbrer:Work ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Type"@en ;
+        rdfs:range          rdfs:Class ;
+        rdfs:subPropertyOf  dc11:type ;
+        dc:description      "Recommended best practice is to use a controlled vocabulary such as the DCMI Type Vocabulary [DCMITYPE]. To describe the file format, physical medium, or dimensions of the resource, use the Format element."@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#typeT-001> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date ;
+        skos:note           "Type of knowledge organization system or structure. Recommend use of KOS Types Vocabulary. Core element." .
+
+dc:MediaType  a           rdfs:Class ;
+        rdfs:comment      "A file format or physical medium."@en ;
+        rdfs:isDefinedBy  dc: ;
+        rdfs:label        "Media Type"@en ;
+        rdfs:subClassOf   dc:MediaTypeOrExtent ;
+        dc:hasVersion     <http://dublincore.org/usage/terms/history/#MediaType-001> ;
+        dc:issued         "2008-01-14"^^xsd:date .
+
+frbrer:P2002  a           rdf:Property ;
+        rdfs:comment      "Relates an expression to the work that is realized through the expression."@en ;
+        rdfs:domain       frbrer:Expression ;
+        rdfs:isDefinedBy  frbrer: ;
+        rdfs:label        "Is Realization Of"@en ;
+        rdfs:range        frbrer:Work ;
+        dc:issued         "2009-12-13"^^xsd:date ;
+        dc:modified       "2012-02-01"^^xsd:date ;
+        skos:note         "Core element"@en .
+
+dc:audience  a            rdf:Property ;
+        rdfs:comment      "A class of entity for whom the resource is intended or useful."@en ;
+        rdfs:domain       frbrer:Expression , frbrer:Manifestation , frbrer:Work ;
+        rdfs:isDefinedBy  dc: ;
+        rdfs:label        "Audience"@en ;
+        rdfs:range        dc:AgentClass ;
+        dc:hasVersion     <http://dublincore.org/usage/terms/history/#audience-003> ;
+        dc:issued         "2001-05-21"^^xsd:date ;
+        dc:modified       "2008-01-14"^^xsd:date ;
+        skos:note         "Recommend using a controlled vocabulary."@en .
+
+frbrer:C1002  a           rdfs:Class ;
+        rdfs:comment      "The intellectual or artistic realization of a work in the form of alpha-numeric, musical, or choreographic notation, sound, image, object, movement, etc., or any combination of such forms."@en ;
+        rdfs:isDefinedBy  frbrer: ;
+        rdfs:label        "Expression"@en ;
+        dc:issued         "2009-12-11"^^xsd:date ;
+        dc:modified       "2010-01-05"^^xsd:date ;
+        skos:note         "A particular version of the KOS, such as in a particular language or an abridgment."@en .
+
+<file:///C:/projects/bibbi-aut/src/vocabularies/nkos.rdf#serviceOffered>
+        a                 owl:ObjectProperty , rdf:Property ;
+        rdfs:comment      "Services provided to users for the described resources."@en ;
+        rdfs:domain       frbrer:Manifestation ;
+        rdfs:isDefinedBy  <http://w3id.org/nkos> ;
+        rdfs:label        "Service Offered"@en ;
+        rdfs:range        rdfs:Literal ;
+        skos:note         "Example: download, extract, query, annotation."@en .
+
+dc:isPartOf  a              rdf:Property ;
+        rdfs:comment        "A related resource in which the described resource is physically or logically included."@en ;
+        rdfs:domain         frbrer:Manifestation , frbrer:Expression , frbrer:Work ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Is Part Of"@en ;
+        rdfs:range          frbrer:Expression , frbrer:Work , frbrer:Manifestation ;
+        rdfs:subPropertyOf  dc11:relation , dc:relation ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#isPartOf-003> ;
+        dc:issued           "2000-07-11"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date ;
+        skos:note           "A related KOS, in which the described KOS is logically included. This is different from nkos:based-on relationship type. Consult KOS Relation-Type Vocabulary for examples and possible extended properties. (http://wiki.dublincore.org/index.php/NKOS_Vocabularies)"@en , "This term is intended to be used with non-literal values as defined in the DCMI Abstract Model (http://dublincore.org/documents/abstract-model/).  As of December 2007, the DCMI Usage Board is seeking a way to express this intention with a formal range declaration."@en .
+
+dcat:contactPoint  a      rdf:Property ;
+        rdfs:comment      "Links an asset to a contact point from where further information about an Asset can be obtained."@en ;
+        rdfs:domain       frbrer:Expression , frbrer:Manifestation ;
+        rdfs:isDefinedBy  dcat: ;
+        rdfs:label        "Contact"@en ;
+        rdfs:range        rdfs:Literal .
+
+frsad:C1001  a            rdfs:Class ;
+        rdfs:comment      "Any entity used as a subject of a work."@en ;
+        rdfs:isDefinedBy  frsad: ;
+        rdfs:label        "Thema"@en ;
+        dc:issued         "2010-08-06"^^xsd:date ;
+        dc:modified       "2011-07-13"^^xsd:date ;
+        skos:note         "A subject domain to which the KOS belongs. It can be a broad subject or any number of narrower subjects. Suggest to use a controlled vocabulary for those subjects."@en .
+
+dc:rights  a                rdf:Property ;
+        rdfs:comment        "Information about rights held in and over the resource."@en ;
+        rdfs:domain         frbrer:Expression , frbrer:Manifestation , frbrer:Work ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Rights"@en ;
+        rdfs:range          dc:RightsStatement ;
+        rdfs:subPropertyOf  dc11:rights ;
+        dc:description      "Typically, rights information includes a statement about various property rights associated with the resource, including intellectual property rights."@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#rightsT-001> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date .
+
+dc:modified  a              rdf:Property ;
+        rdfs:comment        "Date on which the resource was changed."@en ;
+        rdfs:domain         frbrer:Expression , frbrer:Manifestation ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Date Modified"@en ;
+        rdfs:range          rdfs:Literal ;
+        rdfs:subPropertyOf  dc:date , dc11:date ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#modified-003> ;
+        dc:issued           "2000-07-11"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date .
+
+dc:issued  a                rdf:Property ;
+        rdfs:comment        "Date of formal issuance (e.g., publication) of the resource."@en ;
+        rdfs:domain         frbrer:Manifestation ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Date Issued"@en ;
+        rdfs:range          rdfs:Literal ;
+        rdfs:subPropertyOf  dc:date , dc11:date ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#issued-003> ;
+        dc:issued           "2000-07-11"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date ;
+        skos:note           "Core element"@en .
+
+frbrer:C1001  a           rdfs:Class ;
+        rdfs:comment      "A distinct intellectual or artistic creation."@en ;
+        rdfs:isDefinedBy  frbrer: ;
+        rdfs:label        "Work"@en ;
+        dc:issued         "2009-12-11"^^xsd:date ;
+        skos:note         "Usually a KOS as a whole is a work, e.g., ASIS&T Thesaurus."@en .
+
+wdrs:describedby  a       rdf:Property ;
+        rdfs:comment      "The relationship A 'describedby' B asserts that resource B provides a description of resource A."@en ;
+        rdfs:domain       frbrer:Expression , frbrer:Work , frbrer:Manifestation ;
+        rdfs:isDefinedBy  wdrs: ;
+        rdfs:label        "Described by "@en ;
+        rdfs:range        frbrer:Work , frbrer:Expression ;
+        dc:description    "There are no constraints on the format or representation of either A or B, neither are there any further constraints on either resource."@en .
+
+dc:description  a           rdf:Property ;
+        rdfs:comment        "An account of the resource."@en ;
+        rdfs:domain         frbrer:Expression , frbrer:Work , frbrer:Manifestation ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Description"@en ;
+        rdfs:range          rdfs:Literal ;
+        rdfs:subPropertyOf  dc11:description ;
+        dc:description      "Description may include but is not limited to: an abstract, a table of contents, a graphical representation, or a free-text account of the resource."@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#descriptionT-001> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date .
+
+dc:language  a              rdf:Property ;
+        rdfs:comment        "A language of the resource."@en ;
+        rdfs:domain         frbrer:Expression ;
+        rdfs:isDefinedBy    dc: ;
+        rdfs:label          "Language"@en ;
+        rdfs:range          dc:LinguisticSystem ;
+        rdfs:subPropertyOf  dc11:language ;
+        dc:description      "Recommended best practice is to use a controlled vocabulary such as RFC 4646 [RFC4646]."@en ;
+        dc:hasVersion       <http://dublincore.org/usage/terms/history/#languageT-001> ;
+        dc:issued           "2008-01-14"^^xsd:date ;
+        dc:modified         "2008-01-14"^^xsd:date .
+
+dc:LinguisticSystem  a    rdfs:Class ;
+        rdfs:comment      "A system of signs, symbols, sounds, gestures, or rules used in communication."@en ;
+        rdfs:isDefinedBy  dc: ;
+        rdfs:label        "Linguistic System"@en ;
+        dc:description    "Examples include written, spoken, sign, and computer languages."@en ;
+        dc:hasVersion     <http://dublincore.org/usage/terms/history/#LinguisticSystem-001> ;
+        dc:issued         "2008-01-14"^^xsd:date .
+
+<file:///C:/projects/bibbi-aut/src/vocabularies/nkos.rdf#usedBy>
+        a                 owl:ObjectProperty , rdf:Property ;
+        rdfs:comment      "Agent using the described KOS."@en ;
+        rdfs:domain       frbrer:Work , frbrer:Expression ;
+        rdfs:isDefinedBy  <http://w3id.org/nkos> ;
+        rdfs:label        "Used By"@en ;
+        rdfs:range        dc:Agent .
