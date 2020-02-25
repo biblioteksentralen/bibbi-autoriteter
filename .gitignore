@@ -1,5 +1,4 @@
 Pipfile.lock
-cache/
 .env
 *.egg-info
 *.log
