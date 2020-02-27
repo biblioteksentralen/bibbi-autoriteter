@@ -68,7 +68,7 @@ entity.data
 ```
 
 
-### Konverteringsscriptet
+### Konverteringsscript
 
 - Steg 1.1: Last inn data fra SQL inn i pandas DataFrames og normaliser kolonnenavn mest mulig på tvers av tabeller.
 - Steg 1.2: Gjør enkel validering og vasking,  som å fjerne luft fra verdier

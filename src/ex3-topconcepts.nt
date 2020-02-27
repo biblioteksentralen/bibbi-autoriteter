@@ -1,0 +1,49 @@
+<http://id.bibbi.dev/ex3/T0> <http://www.w3.org/2004/02/skos/core#notation> "0" .
+<http://id.bibbi.dev/ex3/T0> <http://www.w3.org/2004/02/skos/core#prefLabel> "Informatikk, informasjon og generelle verker"@nb .
+<http://id.bibbi.dev/ex3/T0> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T0> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/0/e23/> .
+
+<http://id.bibbi.dev/ex3/T1> <http://www.w3.org/2004/02/skos/core#notation> "1" .
+<http://id.bibbi.dev/ex3/T1> <http://www.w3.org/2004/02/skos/core#prefLabel> "Filosofi og psykologi"@nb .
+<http://id.bibbi.dev/ex3/T1> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T1> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/1/e23/> .
+
+<http://id.bibbi.dev/ex3/T2> <http://www.w3.org/2004/02/skos/core#notation> "2" .
+<http://id.bibbi.dev/ex3/T2> <http://www.w3.org/2004/02/skos/core#prefLabel> "Religion"@nb .
+<http://id.bibbi.dev/ex3/T2> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T2> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/2/e23/> .
+
+<http://id.bibbi.dev/ex3/T3> <http://www.w3.org/2004/02/skos/core#notation> "3" .
+<http://id.bibbi.dev/ex3/T3> <http://www.w3.org/2004/02/skos/core#prefLabel> "Samfunnsvitenskap"@nb .
+<http://id.bibbi.dev/ex3/T3> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T3> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/3/e23/> .
+
+<http://id.bibbi.dev/ex3/T4> <http://www.w3.org/2004/02/skos/core#notation> "4" .
+<http://id.bibbi.dev/ex3/T4> <http://www.w3.org/2004/02/skos/core#prefLabel> "Språk"@nb .
+<http://id.bibbi.dev/ex3/T4> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T4> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/4/e23/> .
+
+<http://id.bibbi.dev/ex3/T5> <http://www.w3.org/2004/02/skos/core#notation> "5" .
+<http://id.bibbi.dev/ex3/T5> <http://www.w3.org/2004/02/skos/core#prefLabel> "Naturvitenskap"@nb .
+<http://id.bibbi.dev/ex3/T5> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T5> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/5/e23/> .
+
+<http://id.bibbi.dev/ex3/T6> <http://www.w3.org/2004/02/skos/core#notation> "6" .
+<http://id.bibbi.dev/ex3/T6> <http://www.w3.org/2004/02/skos/core#prefLabel> "Teknologi"@nb .
+<http://id.bibbi.dev/ex3/T6> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T6> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/6/e23/> .
+
+<http://id.bibbi.dev/ex3/T7> <http://www.w3.org/2004/02/skos/core#notation> "7" .
+<http://id.bibbi.dev/ex3/T7> <http://www.w3.org/2004/02/skos/core#prefLabel> "Kunst og fritid"@nb .
+<http://id.bibbi.dev/ex3/T7> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T7> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/7/e23/> .
+
+<http://id.bibbi.dev/ex3/T8> <http://www.w3.org/2004/02/skos/core#notation> "8" .
+<http://id.bibbi.dev/ex3/T8> <http://www.w3.org/2004/02/skos/core#prefLabel> "Litteratur"@nb .
+<http://id.bibbi.dev/ex3/T8> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T8> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/8/e23/> .
+
+<http://id.bibbi.dev/ex3/T9> <http://www.w3.org/2004/02/skos/core#notation> "9" .
+<http://id.bibbi.dev/ex3/T9> <http://www.w3.org/2004/02/skos/core#prefLabel> "Historie og geografi"@nb .
+<http://id.bibbi.dev/ex3/T9> <http://www.w3.org/2004/02/skos/core#topConceptOf> <http://id.bibbi.dev/ex3/> .
+<http://id.bibbi.dev/ex3/T9> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://dewey.info/class/9/e23/> .
