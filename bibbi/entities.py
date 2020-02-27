@@ -428,17 +428,20 @@ class Entities:
     def __len__(self):
         return len(self._items)
 
-    def import_dataframe(self, df, entity_type, label_transforms: True, component_extraction: True):
+    def import_dataframe(self, df, entity_type, label_transforms: True, component_extraction: False):
         # Construct objets from a dataframe
         self.references.extend_from_df(df)
         n = 0
         for row in df.itertuples():  # Note: itertuples is *much* faster than iterrows! Cut loading time from 28s to 4s
-            if self.import_row(DataRow(row, entity_type), label_transforms, component_extraction):
+            data_row = DataRow(row, entity_type)
+            if self.import_row(data_row, label_transforms):
                 n += 1
+                if component_extraction:
+                    self.extract_components(data_row)
 
         log.info('Constructed %d entities of type "%s"', n, entity_type)
 
-    def import_row(self, row: DataRow, label_transforms=True, component_extraction=True):
+    def import_row(self, row: DataRow, label_transforms=True):
         # Create an Entity object from a row
 
         # -----------------------------------------------------------
@@ -461,8 +464,22 @@ class Entities:
         entity.set_label('preferred_label', label['nb'], 'nb')
         entity.set_label('preferred_label', label['nn'], 'nn')
 
-        if pd.notnull(row.item_count):
-            entity.set('item_count', row.item_count)
+        props = [
+            'ddk5_nr',
+            'webdewey_nr',
+            'webdewey_approved',
+            'created',
+            'modified',
+            'items_as_entry',
+            'items_as_subject0',
+            'noraf_id',
+            'nationality',
+            'date',
+        ]
+
+        for key in props:
+            if pd.notnull(row[key]):
+                entity.set(key, row[key])
 
         if row.type == TYPE_CORPORATION and pd.notnull(row.work_title) and row.law == '1':
             entity.set('type', TYPE_LAW)
@@ -471,46 +488,42 @@ class Entities:
             # entity.set_label('preferred_label', row.work_title, 'nn')   # ???
             # OBS: Alle lovene har samme Felles_ID !! De er altså alle biautoriteter uten en hovedautoritet?
 
-        for key in ['ddk5_nr', 'webdewey_nr', 'webdewey_approved', 'created', 'modified']:
-            if pd.notnull(row[key]):
-                entity.set(key, row[key])
-
         if not row.is_main_entry():
             entity.set('type', TYPE_COMPLEX)
 
-        if component_extraction:
-
-            for component in row.get_components():
-                entity.add('components', component)
-
-            # Add all the entities we know about as components first, so that the IDs can be
-            # looked up when we run `make_component_entities()` later on.
-            if row.is_main_entry():
-                if self.components.has(row.type, label['nb']):
-                    other_id = self.components.get(row.type, label['nb'])
-                    other = self.get(other_id)
-
-                    log.warning('CONFLICT: "%s"/%s found in OTHER(%s, wd-approved: %s, count: %s) and THIS(%s, wd-approved: %s, count: %s)',
-                        label['nb'],
-                        row.type,
-                        other.id,
-                        other.webdewey_approved,
-                        other.item_count,
-                        row.bibsent_id,
-                        row.webdewey_approved,
-                        row.item_count
-                    )
-                    if row.item_count > other.item_count:
-                        # Overwrite
-                        self.components.set(row.type, label['nb'], row.bibsent_id, True)
-                    elif other.webdewey_approved == '0' and row.webdewey_approved == '1':
-                        # Overwrite
-                        self.components.set(row.type, label['nb'], row.bibsent_id, True)
-
-                else:
-                    self.components.set(row.type, label['nb'], row.bibsent_id)
-                # self.label_ids[row.type][labels['nb']] = row.bibsent_id
         return True
+
+    def extract_components(self, row):
+        for component in row.get_components():
+            entity.add('components', component)
+
+        # Add all the entities we know about as components first, so that the IDs can be
+        # looked up when we run `make_component_entities()` later on.
+        if row.is_main_entry():
+            if self.components.has(row.type, label['nb']):
+                other_id = self.components.get(row.type, label['nb'])
+                other = self.get(other_id)
+
+                log.warning('CONFLICT: "%s"/%s found in OTHER(%s, wd-approved: %s, count: %s) and THIS(%s, wd-approved: %s, count: %s)',
+                    label['nb'],
+                    row.type,
+                    other.id,
+                    other.webdewey_approved,
+                    other.item_count,
+                    row.bibsent_id,
+                    row.webdewey_approved,
+                    row.item_count
+                )
+                if row.item_count > other.item_count:
+                    # Overwrite
+                    self.components.set(row.type, label['nb'], row.bibsent_id, True)
+                elif other.webdewey_approved == '0' and row.webdewey_approved == '1':
+                    # Overwrite
+                    self.components.set(row.type, label['nb'], row.bibsent_id, True)
+
+            else:
+                self.components.set(row.type, label['nb'], row.bibsent_id)
+            # self.label_ids[row.type][labels['nb']] = row.bibsent_id
 
     def make_component_entity(self, entity_type, label, entity_id=None):
         if entity_id is None:

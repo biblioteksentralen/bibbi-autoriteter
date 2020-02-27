@@ -21,7 +21,7 @@ from bibbi.db import Db
 
 configs = {
     'common': {
-        'load_from_cache': True,
+        'load_from_cache': False,
     },
     's1': {
         'uri_space': 'http://id.bibbi.dev/ex1/',
@@ -30,7 +30,7 @@ configs = {
         'label_transforms': False,
         'component_extraction': False,
         'vocabulary_dest_nt': 'out/bibbi-s1.nt',
-        'mapping_dest_nt': 'out/wd-bibbi-mappings-s1.nt',
+        'mapping_dest_nt': 'out/bibbi-wd-mappings-s1.nt',
     },
     's2': {
         'uri_space': 'http://id.bibbi.dev/ex2/',
@@ -39,17 +39,17 @@ configs = {
         'label_transforms': True,
         'component_extraction': True,
         'vocabulary_dest_nt': 'out/bibbi-s2.nt',
-        'mapping_dest_nt': 'out/wd-bibbi-mappings-s2.nt'
+        'mapping_dest_nt': 'out/bibbi-wd-mappings-s2.nt'
     },
-    's3': {
-        'uri_space': 'http://id.bibbi.dev/ex3/',
-        'delete_unused': False,
-        'entity_candidates': False,
-        'label_transforms': True,
-        'component_extraction': False,
-        'vocabulary_dest_nt': 'out/bibbi-s3.nt',
-        'mapping_dest_nt': 'out/wd-bibbi-mappings-s3.nt'
-    },
+    # 's3': {
+    #     'uri_space': 'http://id.bibbi.dev/ex3/',
+    #     'delete_unused': False,
+    #     'entity_candidates': False,
+    #     'label_transforms': True,
+    #     'component_extraction': False,
+    #     'vocabulary_dest_nt': 'out/bibbi-s3.nt',
+    #     'mapping_dest_nt': 'out/bibbi-wd-mappings-s3.nt'
+    # },
 }
 
 class AppFilter(logging.Filter):
@@ -80,9 +80,9 @@ def main(config):
     dataframes = {}
     for Importer in [
         PersonTable,
-        #GeographicTable,
-        #CorporationTable,
-        #TopicTable,
+        GeographicTable,
+        CorporationTable,
+        TopicTable,
     ]:
         importer = Importer()
         if config['load_from_cache']:
@@ -96,15 +96,15 @@ def main(config):
         dataframes[Importer.entity_type] = importer.df
 
     # Construct Entities object from the dataframes
+    entities = Entities(component_file='storage/components.yml')
+    for entity_type, df in dataframes.items():
+        entities.import_dataframe(
+            df,
+            entity_type,
+            label_transforms=config['label_transforms'],
+            component_extraction=config['component_extraction']
+        )
     if config['component_extraction']:
-        entities = Entities(component_file='storage/components.yml')
-        for entity_type, df in dataframes.items():
-            entities.import_dataframe(
-                df,
-                entity_type,
-                label_transforms=config['label_transforms'],
-                component_extraction=config['component_extraction']
-            )
         entities.make_component_entities()
         entities.components.persist('storage/components.yml')
 
@@ -138,7 +138,11 @@ def main(config):
         graph.serialize_ttl(config['vocabulary_dest_ttl'])
 
     log.info('Serializing mappings')
-    graph = Graph()
+    graph = Graph(
+        concept_scheme=config['uri_space'],
+        entity_space=config['uri_space'],
+        group_space=config['uri_space'] + 'group/'
+    )
     graph.add_mappings(entities)
     graph.skosify()
     if config.get('mapping_dest_nt') is not None:

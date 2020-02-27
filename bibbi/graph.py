@@ -32,12 +32,10 @@ class Graph:
         # 'rdflib.plugins.memory', 'Memory')
         self.graph = rdflib.Graph('IOMemory')
 
-    @staticmethod
-    def uri(entity):
+    def uri(self, entity):
         return self.entity_ns[entity.id]
 
-    @staticmethod
-    def webdewey_uri(entity):
+    def webdewey_uri(self, entity):
         if entity.webdewey_nr is None:
             return None
         if entity.webdewey_approved != '1':
@@ -54,7 +52,7 @@ class Graph:
 
     def add_entities(self, entities, include_unused=True):
         for entity in entities:
-            if include_unused is True or entity.item_count > 0:
+            if include_unused is True or entity.items_as_entry > 0 or entity.items_as_subject > 0:
                 self.add_entity(entity)
         log.info('Generated graph with %d triples', len(self.graph))
 
@@ -69,6 +67,10 @@ class Graph:
             # self.add(entity, ONTO.webDeweyNr, Literal(entity.webdewey_nr)))
             # ONTO.webdewey ?
             self.add(entity, SKOS.closeMatch, webdewey_uri)
+
+        # Note: data.unit.no is not live, nor is data.bibsys.no
+        # if entity.noraf_id is not None:
+        #     self.add(entity, SKOS.exactMatch, 'https://data.unit.no/authority/noraf/' + entity.noraf_id)
 
     def add_entity(self, entity):
         types = {
@@ -136,8 +138,25 @@ class Graph:
             value = entity.modified.strftime('%Y-%m-%dT%H:%M:%S')
             self.add(entity, DCTERMS.modified, Literal(value, datatype=XSD.dateTime))
 
-        if entity.item_count is not None:
-            self.add(entity, ONTO.itemCount, Literal(entity.item_count, datatype=XSD.integer))
+        if entity.items_as_entry is not None:
+            self.add(entity, ONTO.itemsAsEntry, Literal(entity.items_as_entry, datatype=XSD.integer))
+
+        if entity.items_as_subject is not None:
+            self.add(entity, ONTO.itemsAsSubject, Literal(entity.items_as_subject, datatype=XSD.integer))
+
+        if entity.noraf_id is not None:
+            self.add(entity, ONTO.noraf, Literal(entity.noraf_id))
+
+        if entity.nationality is not None:
+            self.add(entity, ONTO.nationality, Literal(entity.nationality))
+
+        if entity.date is not None:
+            dates = entity.date.split('-')
+            if entity.type == TYPE_PERSON:
+                if len(dates[0]):
+                    self.add(entity, ONTO.birthDate, Literal(dates[0]))
+                if len(dates) > 1 and len(dates[1]):
+                    self.add(entity, ONTO.deathDate, Literal(dates[1]))
 
         # ------------------------------------------------------------
         # Dewey

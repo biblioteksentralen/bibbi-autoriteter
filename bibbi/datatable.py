@@ -16,63 +16,78 @@ class DataTable:
     def __init__(self):
         self.df = pd.DataFrame()
 
+    def to_str(self, value):
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return '1' if value else '0'
+        return str(value)
+
+    def trim(self, value):
+        if value is None:
+            return None
+        value = value.strip()
+        if value == '':
+            value = None
+        return value
+
     def load_from_db(self, db):
-
-        def to_str(value):
-            if value is None:
-                return None
-            if isinstance(value, bool):
-                return '1' if value else '0'
-            return str(value)
-
-        def trim(value):
-            if value is None:
-                return None
-            value = value.strip()
-            if value == '':
-                value = None
-            return value
 
         log.info('Retrieving records from %s', self.table_name)
         with db.cursor() as cursor:
             cursor.execute('SELECT * FROM dbo.%s WHERE Approved=1 AND Bibsent_ID IS NOT NULL' % self.table_name)
-            columns = [column[0] for column in cursor.description]
-            columns = [self.columns[c] for c in columns]
+            columns = []
+            for column in cursor.description:
+                if column[0] not in self.columns:
+                    log.error('Encountered unknown column "%s" in "%s" table', column[0], self.table_name)
+                    sys.exit(1)
+                columns.append(self.columns[column[0]])
+
             rows = []
             for row in cursor:
-                row = [trim(to_str(c)) for c in row]
+                row = [self.trim(self.to_str(c)) for c in row]
                 rows.append(row)
                 # break
             df = pd.DataFrame(rows, dtype='str', columns=columns)
             df = self.validate(df)
             df.set_index('bibsent_id', drop=False, inplace=True)
 
-        log.info('Retrieving document counts for %s', self.table_name)
-        with db.cursor() as cursor:
-            cursor.execute("""SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
-                LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
-                LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
-                WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
-                GROUP BY a.Bibsent_ID
-            """ % {
-                'table': self.table_name,
-                'id_field': self.id_field,
-                'field_codes': ', '.join(["'%s'" % field_code for field_code in self.field_codes]),
-            })
-            rows = []
-            for row in cursor:
-                row = [trim(to_str(c)) for c in row]
-                rows.append(row)
-                # break
-            item_count_df = pd.DataFrame(rows, dtype='str', columns=['bibsent_id', 'item_count'])
-            item_count_df.set_index('bibsent_id', inplace=True)
-            df = df.join(item_count_df)
-            # Note: We cannot have NaN values in the item_column, or Pandas will convert the integer column to float
-            # since int does not support NaN
-            df.item_count = pd.to_numeric(df.item_count, downcast='integer')  #.astype('int8')  # pd.to_numeric(item_count_df.item_count, downcast='integer')
+        log.info('Loaded %d rows from %s (live)', self.df.shape[0], self.table_name)
+
+        self.add_document_counts(db, df)
 
         self.df = df
-        log.info('Loaded %d rows from %s (live)', self.df.shape[0], self.table_name)
+
+    def add_document_counts(self, db):
+        with db.cursor() as cursor:
+            field_code_map = {
+                'items_as_entry': [self.field_code.replace('X', '1'), self.field_code.replace('X', '7')],
+                'items_as_subject': [self.field_code.replace('X', '6')],
+            }
+            for key, field_codes in field_code_map.items():
+                cursor.execute("""SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
+                    LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
+                    LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
+                    WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
+                    GROUP BY a.Bibsent_ID
+                """ % {
+                    'table': self.table_name,
+                    'id_field': self.id_field,
+                    'field_codes': ', '.join(["'%s'" % field_code for field_code in field_codes]),
+                })
+                rows = []
+                for row in cursor:
+                    row = [self.trim(self.to_str(c)) for c in row]
+                    rows.append(row)
+                    # break
+                tmp_df = pd.DataFrame(rows, dtype='str', columns=['bibsent_id', key])
+                tmp_df.set_index('bibsent_id', inplace=True)
+                df = df.join(tmp_df)
+                # Note: We cannot have NaN values in the item_column, or Pandas will convert the integer column to float
+                # since int does not support NaN
+                df[key] = pd.to_numeric(df[key], downcast='integer')  #.astype('int8')  # pd.to_numeric(item_count_df.item_count, downcast='integer')
+                log.info('  %s: %d', key, df[key].sum())
+        log.info('Retrieved document counts for %s', self.table_name)
 
     def load_from_feather(self, folder):
         filename = '%s/%s.feather' % (folder, self.entity_type)
@@ -95,20 +110,21 @@ class DataTable:
         df_refs = df[df.ref_id.notnull()]
         refs = dict(zip(df_refs.row_id, df_refs.ref_id))
         invalid = set()
-        for n in range(3):
+        for n in range(5):
             # If A -> B and B -> NULL, the first pass will mark B as invalid
             # and the second pass will mark A as invalid.
             # We also self-references (A -> A)
-            log.info('Validating: Pass %d' % n)
+            log.info('Validating references: Pass %d' % n)
             n1 = len(invalid)
             for k, v in refs.items():
                 if k == v or v not in ids or v in invalid:
                     invalid.add(k)
                     # del refs[k]
             n2 = len(invalid)
-            print('Invalid from %d to %d' % (n1, n2))
+            if n1 == n2:
+                break
 
-        print('%d out of %d refs were invalid ' % (len(invalid), len(refs)))
+        log.info('%d out of %d references were invalid' % (len(invalid), len(refs)))
 
         # Remove all invalid rows
         df = df[~df.row_id.isin(list(invalid))]
@@ -160,7 +176,7 @@ class TopicTable(DataTable):
     entity_type = 'topic'
     table_name = 'AuthorityTopic'
     id_field = 'AuthID'
-    field_codes = ['650']
+    field_code = 'X50'
     columns = {
         'AuthID': 'row_id',  # Lokal id for denne tabellen
         'Title': 'label',  # Emne ($a), 13439 unike verdier
@@ -208,7 +224,7 @@ class GeographicTable(DataTable):
     entity_type = 'geographic'
     table_name = 'AuthorityGeographic'
     id_field = 'TopicID'
-    field_codes = ['651']
+    field_code = 'X51'
     columns = {
         'TopicID': 'row_id',                         # Lokal ID for tabellen
         'GeoName': 'label',                      # Emne ($a), 13439 unike verdier
@@ -251,7 +267,7 @@ class CorporationTable(DataTable):
     entity_type = 'corporation'
     table_name = 'AuthorityCorp'
     id_field = 'CorpID'
-    field_codes = ['110', '610', '710']
+    field_code = 'X10'
     columns = {
         'CorpID': 'row_id',
         'CorpName': 'label',
@@ -314,7 +330,7 @@ class PersonTable(DataTable):
     entity_type = 'person'
     table_name = 'AuthorityPerson'
     id_field = 'PersonId'
-    field_codes = ['100', '600', '700']
+    field_code = 'X00'
     columns = {
         'PersonId': 'row_id',
         'PersonName': 'label', # $a Personal name
@@ -364,7 +380,7 @@ class PersonTable(DataTable):
         'Bibsent_ID': 'bibsent_id',   # Verdi for $0
         'Felles_ID': 'felles_id',     # Felles ID når vi har både hoved- og biautoriteter
 
-        'NB_ID': 'nb_id',             # BARE-ID
+        'NB_ID': 'noraf_id',             # BARE-ID
         'NB_PersonNation': 'nb_person_nation',
         'NB_Origin': 'nb_origin',     # 'adabas'
 
@@ -375,4 +391,5 @@ class PersonTable(DataTable):
         'KatStatus': 'kat_status',
         'Gender': 'gender',
         'Handle_ID': 'handle_id',
+        'Nametype': 'name_type',   # ?
     }

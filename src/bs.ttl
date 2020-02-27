@@ -118,7 +118,6 @@ bs:webdewey a rdf:Property , owl:DatatypeProperty ;
     "WebDewey number (approved)"@en ;
 .
 
-
 bs:webdeweyDraft a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
@@ -127,11 +126,65 @@ bs:webdeweyDraft a rdf:Property , owl:DatatypeProperty ;
     "WebDewey number (non-approved)"@en ;
 .
 
-bs:itemCount a rdf:Property , owl:DatatypeProperty ;
+bs:itemsAsEntry a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
   rdfs:range rdfs:Literal ;
-  rdfs:label "Antall dokumenter"@nb ,
-    "Number of documents"@en ;
-  rdfs:comment "Number of linked documents in Bibbi."@en ;
+  rdfs:label "Antall dokumenter (som innførsel)"@nb ,
+    "Number of documents (as entry)"@en ;
+  rdfs:comment "Number of documents in the Bibbi catalogue using this authority record as entry."@en ;
+.
+
+bs:itemsAsSubject a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Antall dokumenter (som emne)"@nb ,
+    "Number of documents (as subject)"@en ;
+  rdfs:comment "Number of documents in the Bibbi catalogue using this authority record as subject."@en ;
+.
+
+bs:norafId a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "NORAF-ID"@nb ,
+    "NORAF ID"@en ;
+  rdfs:comment "Identifier in Norwegian Authority File (this property an RDF version of the authority file is made available)."@en ;
+.
+
+bs:nationality a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Nasjonalitet"@nb ,
+    "Nationality"@en ;
+  rdfs:comment "Nationality of a person."@en ;
+.
+
+bs:birthDate a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Fødselsdato"@nb ,
+    "Birth date"@en ;
+  rdfs:comment "Birth year or date for a person."@en ;
+.
+
+bs:deathDate a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Dødsdato"@nb ,
+    "Death date"@en ;
+  rdfs:comment "Death year or date for a person."@en ;
+.
+
+bs:nationality a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Nasjonalitet"@nb ,
+    "Nationality"@en ;
+  rdfs:comment "Nationality of a person."@en ;
 .
