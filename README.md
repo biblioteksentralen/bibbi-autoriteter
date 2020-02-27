@@ -82,3 +82,40 @@ entity.data
 - Steg 3.2: Kjør kvalitetssjekk og slutning på grafen med Skosify
 - Steg 3.3: Lagre
 
+
+### Installasjon
+
+For tilkobling til Microsft SQL Server bruker vi PyODBC-driveren FreeTDS på Linux og Mac
+
+### Mac:
+
+	brew install unixodbc freetds
+
+Create a template file `odbcinst.ini` at `/usr/local/etc/odbcinst.ini`
+
+	[FreeTDS]
+	Description=FreeTDS
+	Driver=/usr/local/lib/libtdsodbc.0.so
+	Setup=/usr/local/lib/libtdsodbc.0.so
+	UsageCount=1
+
+And install it:
+
+	sudo odbcinst -i -d -f /usr/local/etc/odbcinst.ini
+
+### Debian/Ubuntu:
+
+	sudo apt install tdsodbc freetds-bin freetds-dev unixodbc-dev
+	sudo odbcinst -i -d -f /etc/odbcinst.ini
+
+Create a template file `odbcinst.ini` at `/etc/odbcinst.ini`
+
+	[FreeTDS]
+	Description=FreeTDS
+	Driver=/usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so
+	Setup=/usr/lib/x86_64-linux-gnu/odbc/libtdsS.so
+	UsageCount=1
+
+And install it:
+
+	sudo odbcinst -i -d -f /etc/odbcinst.ini
