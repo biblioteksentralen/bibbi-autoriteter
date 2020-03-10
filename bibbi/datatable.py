@@ -119,7 +119,7 @@ class DataTable:
             # If A -> B and B -> NULL, the first pass will mark B as invalid
             # and the second pass will mark A as invalid.
             # We also self-references (A -> A)
-            log.info('[%s] Validating references: Pass %d', self.entity_type, n)
+            log.info('[%s] Validating references: Pass %d', self.entity_type, n + 1)
             n1 = len(invalid)
             for k, v in refs.items():
                 if k == v or v not in ids or v in invalid:

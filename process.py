@@ -95,9 +95,9 @@ def main(config):
     # Load everything into dataframes first
     Importers = [
         CorporationTable,
-        #PersonTable,
+        PersonTable,
         GeographicTable,
-        #TopicTable,
+        TopicTable,
     ]
 
     cache = TableCache()

@@ -442,7 +442,7 @@ class Entities:
                 if component_extraction:
                     self.extract_components(data_row)
 
-        log.info('Constructed %d entities of type "%s"', n, entity_type)
+        log.info('[%s] Constructed %d entities', entity_type, n)
 
     def import_row(self, row: DataRow, label_transforms=True):
         # Create an Entity object from a row
