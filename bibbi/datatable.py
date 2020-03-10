@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 from copy import copy
 import functools
 import pandas as pd
@@ -12,6 +13,10 @@ class DataTable:
     entity_type = None
     table_name = None
     columns = []
+
+    # Override these
+    field_code = 'X00'
+    id_field = 'AuthID'
 
     def __init__(self):
         self.df = pd.DataFrame()
@@ -33,13 +38,13 @@ class DataTable:
 
     def load_from_db(self, db):
 
-        log.info('Retrieving records from %s', self.table_name)
+        log.info('[%s] Retrieving records from database', self.entity_type)
         with db.cursor() as cursor:
             cursor.execute('SELECT * FROM dbo.%s WHERE Approved=1 AND Bibsent_ID IS NOT NULL' % self.table_name)
             columns = []
             for column in cursor.description:
                 if column[0] not in self.columns:
-                    log.error('Encountered unknown column "%s" in "%s" table', column[0], self.table_name)
+                    log.error('[%s] Encountered unknown column "%s" in "%s" table', self.entity_type, column[0], self.table_name)
                     sys.exit(1)
                 columns.append(self.columns[column[0]])
 
@@ -52,11 +57,10 @@ class DataTable:
             df = self.validate(df)
             df.set_index('bibsent_id', drop=False, inplace=True)
 
-        log.info('Loaded %d rows from %s (live)', self.df.shape[0], self.table_name)
-
-        self.add_document_counts(db, df)
-
         self.df = df
+        log.info('[%s] Loaded %d x %d table', self.entity_type, self.df.shape[0], self.df.shape[1])
+        self.add_document_counts(db)
+        log.info('[%s] Table extended to %d x %d', self.entity_type, self.df.shape[0], self.df.shape[1])
 
     def add_document_counts(self, db):
         with db.cursor() as cursor:
@@ -82,22 +86,23 @@ class DataTable:
                     # break
                 tmp_df = pd.DataFrame(rows, dtype='str', columns=['bibsent_id', key])
                 tmp_df.set_index('bibsent_id', inplace=True)
-                df = df.join(tmp_df)
+                self.df = self.df.join(tmp_df)
                 # Note: We cannot have NaN values in the item_column, or Pandas will convert the integer column to float
                 # since int does not support NaN
-                df[key] = pd.to_numeric(df[key], downcast='integer')  #.astype('int8')  # pd.to_numeric(item_count_df.item_count, downcast='integer')
-                log.info('  %s: %d', key, df[key].sum())
-        log.info('Retrieved document counts for %s', self.table_name)
+                self.df[key] = pd.to_numeric(self.df[key], downcast='integer')  #.astype('int8')  # pd.to_numeric(item_count_df.item_count, downcast='integer')
+                log.info('[%s] Document counts (%s): %d', self.entity_type, key, self.df[key].sum())
 
     def load_from_feather(self, folder):
         filename = '%s/%s.feather' % (folder, self.entity_type)
         self.df = feather.read_dataframe(filename)
-        log.info('Loaded %d rows from %s (cached)', self.df.shape[0], self.table_name)
+        log.info('[%s] Loaded %d x %d table from cache', self.entity_type, self.df.shape[0], self.df.shape[1])
 
     def save_as_feather(self, folder):
+        if not os.path.exists(folder):
+            os.mkdir(folder)
         filename = '%s/%s.feather' % (folder, self.entity_type)
         feather.write_dataframe(self.df, filename)
-        log.info('Wrote feather cache for %s', self.entity_type)
+        log.info('[%s] Saved %d x %d table to cache', self.entity_type, self.df.shape[0], self.df.shape[1])
 
     def validate(self, df):
         df.created = pd.to_datetime(df.created)
@@ -114,7 +119,7 @@ class DataTable:
             # If A -> B and B -> NULL, the first pass will mark B as invalid
             # and the second pass will mark A as invalid.
             # We also self-references (A -> A)
-            log.info('Validating references: Pass %d' % n)
+            log.info('[%s] Validating references: Pass %d', self.entity_type, n)
             n1 = len(invalid)
             for k, v in refs.items():
                 if k == v or v not in ids or v in invalid:
@@ -124,21 +129,19 @@ class DataTable:
             if n1 == n2:
                 break
 
-        log.info('%d out of %d references were invalid' % (len(invalid), len(refs)))
+        log.info('[%s] %d out of %d references were invalid', self.entity_type, len(invalid), len(refs))
 
         # Remove all invalid rows
         df = df[~df.row_id.isin(list(invalid))]
 
         rows_after = df.shape[0]
         if rows_before == rows_after:
-            log.info('Validated dataframe for %s', self.table_name)
+            log.info('[%s] Validated dataframe', self.entity_type)
         else:
-            log.info('Validated dataframe for %s. Rows reduced from %d to %d', self.table_name, rows_before, rows_after)
+            log.info('[%s] Validated dataframe. Rows reduced from %d to %d', self.entity_type, rows_before, rows_after)
         return df
 
-    @classmethod
-    def validate_row(cls, row):
-
+    def validate_row(self, row):
         # Trim all values
         for key, value in row.items():
             if pd.notnull(value) and isinstance(value, str) and value.strip() != value:
@@ -151,7 +154,7 @@ class DataTable:
                 row[key] = None
 
         if pd.isnull(row.row_id):
-            log.error('Row failed validation: id is NULL')
+            log.error('[%s] Row failed validation: id is NULL', self.entity_type)
             return False
 
         # if pd.notnull(row.referenceId) and pd.notnull(row.webDeweyNr):
@@ -166,7 +169,7 @@ class DataTable:
         # log.warning('Row %s: Both BibbiNr and ReferenceId are NULL', row.Id)
         # return False
         if pd.isnull(row.label):
-            log.error('Row %s failed validation: Title/Label is NULL', row.row_id)
+            log.error('[%s] Row %s failed validation: Title/Label is NULL', self.entity_type, row.row_id)
             return False
 
         return True

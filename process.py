@@ -6,6 +6,7 @@ import yaml
 import psutil
 import time
 import os
+import argparse
 
 from dotenv import load_dotenv
 
@@ -75,25 +76,40 @@ class AppFilter(logging.Filter):
         return True
 
 
+class TableCache:
+
+    def update(self, importer_cls):
+        importer = importer_cls()
+        db = Db(server=os.getenv('DB_SERVER'), database=os.getenv('DB_DB'),
+                user=os.getenv('DB_USER'), password=os.getenv('DB_PASSWORD'))
+        importer.load_from_db(db)
+        importer.save_as_feather('cache')
+
+    def get(self, importer_cls):
+        importer = importer_cls()
+        importer.load_from_feather('cache')
+        return importer.df
+
+
 def main(config):
-    # Load everything into dataframes first (famous last words?)
-    dataframes = {}
-    for Importer in [
-        PersonTable,
-        GeographicTable,
+    # Load everything into dataframes first
+    Importers = [
         CorporationTable,
-        TopicTable,
-    ]:
-        importer = Importer()
-        if config['load_from_cache']:
-            importer.load_from_feather('cache')
-        else:
-            # print(os.getenv('DB_USER'))
-            db = Db(server=os.getenv('DB_SERVER'), database=os.getenv('DB_DB'),
-                    user=os.getenv('DB_USER'), password=os.getenv('DB_PASSWORD'))
-            importer.load_from_db(db)
-            importer.save_as_feather('cache')
-        dataframes[Importer.entity_type] = importer.df
+        #PersonTable,
+        GeographicTable,
+        #TopicTable,
+    ]
+
+    cache = TableCache()
+
+    # Update cache?
+    if config['load_from_cache'] is False:
+        for importer_cls in Importers:
+            cache.update(importer_cls)
+
+    dataframes = {}
+    for importer_cls in Importers:
+        dataframes[importer_cls.entity_type] = cache.get(importer_cls)
 
     # Construct Entities object from the dataframes
     entities = Entities(component_file='storage/components.yml')

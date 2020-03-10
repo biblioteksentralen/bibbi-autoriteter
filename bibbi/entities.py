@@ -125,11 +125,14 @@ class DataRow:
         self.row = row
         self.type = type
 
-    def __getattr__(self, item):
-        return getattr(self.row, item)
+    def __getattr__(self, key):
+        return getattr(self.row, key)
 
-    def __getitem__(self, item):
-        return getattr(self.row, item)
+    def __getitem__(self, key):
+        return getattr(self.row, key)
+
+    def __contains__(self, key):
+        return key in self.row
 
     def get(self, *keys):
         # Fallback chain, get first non-null value
@@ -471,14 +474,14 @@ class Entities:
             'created',
             'modified',
             'items_as_entry',
-            'items_as_subject0',
+            'items_as_subject',
             'noraf_id',
             'nationality',
             'date',
         ]
 
         for key in props:
-            if pd.notnull(row[key]):
+            if key in row and pd.notnull(row[key]):
                 entity.set(key, row[key])
 
         if row.type == TYPE_CORPORATION and pd.notnull(row.work_title) and row.law == '1':
