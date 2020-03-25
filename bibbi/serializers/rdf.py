@@ -1,16 +1,147 @@
 import logging
 import re
 import rdflib
+import os
 from rdflib import Literal, Namespace, URIRef
 from rdflib.namespace import RDF, SKOS, DCTERMS, XSD
 from otsrdflib import OrderedTurtleSerializer
 import skosify
+
+from ..util import ensure_parent_dir_exists
+from ..constants import TYPE_PERSON, TYPE_TOPIC, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION
+
+# TYPE_TOPIC = 'topic'
+# TYPE_GEOGRAPHIC = 'geographic'
+# TYPE_CORPORATION = 'corporation'
+# TYPE_PERSON = 'person'
+# TYPE_QUALIFIER = 'qualifier'
+# TYPE_COMPLEX = 'complex'
+# TYPE_LAW = 'law'
 
 log = logging.getLogger(__name__)
 
 # namespaces: bibbi eller bibsent ?
 ISOTHES = Namespace('http://purl.org/iso25964/skos-thes#')
 ONTO = Namespace('http://schema.bibbi.dev/')
+
+
+def initialize_filters(filters):
+    out = {}
+    for filter_name in filters:
+        if filter_name == 'type:topic':
+            out[filter_name] = lambda x: x.type == TYPE_TOPIC
+        elif filter_name == 'type:geographic':
+            out[filter_name] = lambda x: x.type == TYPE_GEOGRAPHIC
+        elif filter_name == 'type:person':
+            out[filter_name] = lambda x: x.type == TYPE_PERSON
+        elif filter_name == 'type:corporation':
+            out[filter_name] = lambda x: x.type == TYPE_CORPORATION
+        else:
+            raise ValueError('Unknown filter: %s' % filter_name)
+    return out
+
+
+class RdfSerializers:
+
+    def __init__(self, config):
+        self.serializers = []
+
+        typemap = {
+            'entities': RdfEntitySerializer,
+            'entities+mappings': RdfEntityAndMappingSerializer,
+            'forward_mappings': RdfMappingSerializer,
+            'reverse_mappings': RdfReverseMappingSerializer,
+        }
+
+        for variant in config['variants']:
+            extras = {k: v for k, v in variant.items() if k not in ['type']}
+            serializer_type = typemap[variant['type']]
+            serializer = serializer_type(graph_options=config['graph'],
+                                         includes=config.get('includes', []),
+                                         **extras)
+            self.serializers.append(serializer)
+
+    def serialize(self, entities, destination_dir):
+        for serializer in self.serializers:
+            log.info('Starting %s', type(serializer).__name__)
+            serializer.serialize(entities, destination_dir)
+
+
+class RdfSerializer:
+
+    def __init__(self, graph_options, includes=[], filters=[], products=[]):
+        self.graph = Graph(**graph_options)
+        self.includes = includes
+        self.filters = initialize_filters(filters)
+        self.products = products
+
+    def filter(self, entities):
+        for filter_name, filter_fn in self.filters.items():
+            before = len(entities)
+            entities = entities.filter(filter_fn)
+            after = len(entities)
+            log.info('Filter "%s": %d -> %d entities', filter_name, before, after)
+        return entities
+
+    def serialize(self, entities, destination_dir):
+        self.load_includes()
+        entities = self.filter(entities)
+        self.populate_graph(entities)
+        log.info('Generated mappings graph with %d triples', len(self.graph))
+        self.store(destination_dir)
+
+    def load_includes(self):
+        pass
+
+    def skosify(self):
+        s0 = len(self.graph)
+        self.graph.skosify()
+        s1 = len(self.graph)
+        log.info('Skosify: %d -> %d triples', s0, s1)
+
+    def store(self, destination_dir):
+        for product in self.products:
+            dest_path = os.path.join(destination_dir, product['filename'])
+            self.graph.serialize(dest_path, product['format'])
+            log.info('Wrote %s', dest_path)
+
+
+class RdfEntitySerializer(RdfSerializer):
+
+    def load_includes(self):
+        for filename in self.includes:
+            self.graph.load(filename, format='turtle')
+
+    def populate_graph(self, entities):
+        self.graph.add_entities(entities)
+        self.skosify()
+
+        # if config['delete_unused']:
+        #     log.info('Deleting unused')
+        #     triples_before = len(graph.graph)
+        #     graph.delete_unused()
+        #     triples_after = len(graph.graph)
+        #     log.info('Triples changed from %d to %d', triples_before, triples_after)
+
+
+class RdfEntityAndMappingSerializer(RdfEntitySerializer):
+
+    def populate_graph(self, entities):
+        self.graph.add_entities(entities)
+        self.graph.add_mappings(entities)
+        self.skosify()
+
+
+class RdfMappingSerializer(RdfSerializer):
+    reverse=False
+
+    def populate_graph(self, entities):
+        self.graph.add_mappings(entities, reverse=self.reverse)
+
+
+class RdfReverseMappingSerializer(RdfMappingSerializer):
+    reverse=True
+
 
 class Graph:
 
@@ -20,17 +151,20 @@ class Graph:
         ISOTHES.ThesaurusArray,
     ]
 
-    def __init__(self, entity_space, concept_scheme, group_space):
+    def __init__(self, concept_scheme, entity_ns, group_ns):
 
         self.scheme_uri = URIRef(concept_scheme)
-        self.entity_ns = Namespace(entity_space)
-        self.group_ns = Namespace(group_space)
+        self.entity_ns = Namespace(entity_ns)
+        self.group_ns = Namespace(group_ns)
 
         # Note to self: Memory store is slightly faster than IOMemory store, but we cannot load turtle files into it,
         # so just use the more convenient IOMemory store for now.
         # rdflib.plugin.register('Memory', rdflib.store.Store,
         # 'rdflib.plugins.memory', 'Memory')
         self.graph = rdflib.Graph('IOMemory')
+
+    def __len__(self):
+        return len(self.graph)
 
     def uri(self, entity):
         return self.entity_ns[entity.id]
@@ -50,27 +184,28 @@ class Graph:
     def add(self, entity, prop, val):
         self.graph.add((self.uri(entity), prop, val))
 
-    def add_entities(self, entities, include_unused=True):
-        for entity in entities:
-            if include_unused is True or entity.items_as_entry > 0 or entity.items_as_subject > 0:
-                self.add_entity(entity)
-        log.info('Generated graph with %d triples', len(self.graph))
+    def add_raw(self, s, p, o):
+        self.graph.add((s, p, o))
 
-    def add_mappings(self, entities):
+    def add_mappings(self, entities, reverse=False):
         for entity in entities:
-            self.add_entity_mappings(entity)
-        log.info('Generated graph with %d triples', len(self.graph))
+            self.add_entity_mappings(entity, reverse)
 
-    def add_entity_mappings(self, entity):
+    def add_entity_mappings(self, entity, reverse=False):
         webdewey_uri = self.webdewey_uri(entity)
         if webdewey_uri is not None:
-            # self.add(entity, ONTO.webDeweyNr, Literal(entity.webdewey_nr)))
-            # ONTO.webdewey ?
-            self.add(entity, SKOS.closeMatch, webdewey_uri)
+            if reverse:
+                self.add_raw(webdewey_uri, SKOS.closeMatch, self.uri(entity))
+            else:
+                self.add_raw(self.uri(entity), SKOS.closeMatch, webdewey_uri)
 
         # Note: data.unit.no is not live, nor is data.bibsys.no
         # if entity.noraf_id is not None:
         #     self.add(entity, SKOS.exactMatch, 'https://data.unit.no/authority/noraf/' + entity.noraf_id)
+
+    def add_entities(self, entities):
+        for entity in entities:
+            self.add_entity(entity)
 
     def add_entity(self, entity):
         types = {
@@ -123,12 +258,12 @@ class Graph:
 
         self.add(entity, SKOS.inScheme, self.scheme_uri)
 
-        for label in entity.preferred_label.values():
-            self.add(entity, SKOS.prefLabel, Literal(label.value, label.lang))
+        for lang, value in entity.pref_label.items():
+            self.add(entity, SKOS.prefLabel, Literal(value, lang))
 
-        for labels in entity.alternative_labels.values():
-            for label in labels:
-                self.add(entity, SKOS.altLabel, Literal(label.value, label.lang))
+        for label in entity.alt_label:
+            for lang, value in label.items():
+                self.add(entity, SKOS.prefLabel, Literal(value, lang))
 
         if entity.created is not None:
             value = entity.created.strftime('%Y-%m-%dT%H:%M:%S')
@@ -229,13 +364,23 @@ class Graph:
     def load(self, filename, format):
         self.graph.load(filename, format=format)
 
+    def serialize(self, filename, file_format):
+        if file_format not in ['ntriples', 'turtle']:
+            raise Error('Invalid file format')
+        if file_format == 'ntriples':
+            return self.serialize_nt(filename)
+        if file_format == 'turtle':
+            return self.serialize_ttl(filename)
+
     def serialize_nt(self, filename):
         # The nt serialization is the most efficient (by far)
+        ensure_parent_dir_exists(filename)
         self.graph.serialize(filename, format='nt')
         log.info('Serialized graph as: %s', filename)
 
     def serialize_ttl(self, filename):
         # Ordered Turtle serialization is super slow, but produces a nice-looking output
+        ensure_parent_dir_exists(filename)
         serializer = OrderedTurtleSerializer(self.graph)
         serializer.class_order = self.class_order
         with open(filename, 'wb') as fp:

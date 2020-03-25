@@ -10,9 +10,9 @@ import argparse
 
 from dotenv import load_dotenv
 
-from bibbi.datatable import TopicTable, GeographicTable, CorporationTable, PersonTable
+from bibbi.repository import TopicTable, GeographicTable, CorporationTable, PersonTable
 from bibbi.entities import Entities
-from bibbi.graph import Graph
+from bibbi.serializers.rdf import RdfSerializers
 from bibbi.db import Db
 
 # gnd: / gndo:
@@ -20,38 +20,111 @@ from bibbi.db import Db
 # 'entities' eller 'authority' eller...
 
 
-configs = {
-    'common': {
-        'load_from_cache': False,
-    },
-    's1': {
-        'uri_space': 'http://id.bibbi.dev/ex1/',
-        'delete_unused': False,
-        'entity_candidates': False,
-        'label_transforms': False,
-        'component_extraction': False,
-        'vocabulary_dest_nt': 'out/bibbi-s1.nt',
-        'mapping_dest_nt': 'out/bibbi-wd-mappings-s1.nt',
-    },
-    's2': {
-        'uri_space': 'http://id.bibbi.dev/ex2/',
-        'delete_unused': True,
-        'entity_candidates': True,
-        'label_transforms': True,
-        'component_extraction': True,
-        'vocabulary_dest_nt': 'out/bibbi-s2.nt',
-        'mapping_dest_nt': 'out/bibbi-wd-mappings-s2.nt'
-    },
-    # 's3': {
-    #     'uri_space': 'http://id.bibbi.dev/ex3/',
-    #     'delete_unused': False,
-    #     'entity_candidates': False,
-    #     'label_transforms': True,
-    #     'component_extraction': False,
-    #     'vocabulary_dest_nt': 'out/bibbi-s3.nt',
-    #     'mapping_dest_nt': 'out/bibbi-wd-mappings-s3.nt'
-    # },
+config = {
+    'destination_dir': 'out/',
+    'load_from_cache': True,
+    'conversions': [
+        {
+            'name': 'bibbi',
+            'delete_unused': False,
+            'entity_candidates': False,
+            'label_transforms': False,
+            'component_extraction': False,
+
+            'rdf': {
+                'graph': {
+                    'concept_scheme': 'http://id.bibbi.dev/bibbi/',
+                    'entity_ns': 'http://id.bibbi.dev/bibbi/',
+                    'group_ns': 'http://id.bibbi.dev/bibbi/group/',
+                },
+                'includes': [
+                    'src/bs.ttl',
+                    'src/bibbi.scheme.ttl',
+                ],
+                'variants': [
+                    {
+                        'type': 'entities+mappings',
+                        'filters': [
+                            'type:topic',
+                        ],
+                        'products': [{
+                            'filename': 'bibbi-topic.nt',
+                            'format': 'ntriples',
+                        }]
+                    },
+                    {
+                        'type': 'entities+mappings',
+                        'filters': [
+                            'type:geographic',
+                        ],
+                        'products': [{
+                            'filename': 'bibbi-geographic.nt',
+                            'format': 'ntriples',
+                        }]
+                    },
+                    {
+                        'type': 'entities+mappings',
+                        'filters': [
+                            'type:person',
+                        ],
+                        'products': [{
+                            'filename': 'bibbi-person.nt',
+                            'format': 'ntriples',
+                        }]
+                    },
+                    {
+                        'type': 'entities+mappings',
+                        'filters': [
+                            'type:corporation',
+                        ],
+                        'products': [{
+                            'filename': 'bibbi-corporation.nt',
+                            'format': 'ntriples',
+                        }]
+                    },
+                    {
+                        'type': 'reverse_mappings',
+                        'products': [{
+                            'filename': 'webdewey-bibbi-mappings.nt',
+                            'format': 'ntriples',
+                        }]
+                    },
+                ],
+            }
+        },
+        # {
+        #     'name': 'bibbi-ex2',
+        #     'delete_unused': True,
+        #     'entity_candidates': True,
+        #     'label_transforms': True,
+        #     'component_extraction': True,
+        #     'graph_options': {
+        #         'concept_scheme': 'http://id.bibbi.dev/bibbi-ex2/',
+        #         'entity_ns': 'http://id.bibbi.dev/bibbi-ex2/',
+        #         'group_ns': 'http://id.bibbi.dev/bibbi-ex2/group/',
+        #     },
+        #     'include': [
+        #         'src/bs.ttl',
+        #         'src/bibbi-ex2.scheme.ttl',
+        #     ],
+        #     'products': {
+        #         'vocabulary': [{
+        #             'filename': 'bibbi-ex2.nt',
+        #             'format': 'ntriples',
+        #         }],
+        #         'forward_mappings': [{
+        #             'filename': 'bibbi-webdewey-mappings-ex2.nt',
+        #             'format': 'ntriples',
+        #         }],
+        #         'reverse_mappings': [{
+        #             'filename': 'webdewey-bibbi-mappings-ex2.nt',
+        #             'format': 'ntriples',
+        #         }],
+        #     }
+        # },
+    ],
 }
+
 
 class AppFilter(logging.Filter):
 
@@ -76,99 +149,77 @@ class AppFilter(logging.Filter):
         return True
 
 
-class TableCache:
+class Repository:
 
-    def update(self, importer_cls):
-        importer = importer_cls()
+    def __init__(self, table_classes):
+        self.tables = {table_cls.entity_type: table_cls() for table_cls in table_classes}
+
+    def from_db(self):
         db = Db(server=os.getenv('DB_SERVER'), database=os.getenv('DB_DB'),
                 user=os.getenv('DB_USER'), password=os.getenv('DB_PASSWORD'))
-        importer.load_from_db(db)
-        importer.save_as_feather('cache')
+        for table in self.tables.values():
+            table.load_from_db(db)
+            table.save_to_cache('cache')
 
-    def get(self, importer_cls):
-        importer = importer_cls()
-        importer.load_from_feather('cache')
-        return importer.df
+    def from_cache(self):
+        for table in self.tables.values():
+            table.load_from_cache('cache')
+
+    def load(self, from_db=False):
+        if from_db:
+            self.from_db()
+        else:
+            self.from_cache()
+
+    def get(self):
+        return self.tables.values()
 
 
 def main(config):
-    # Load everything into dataframes first
-    Importers = [
+
+    # ------------------------------------------------------------
+    # Load everything into memory first
+
+    log.info('===== Load =====')
+
+    # Load DataTables
+    repo = Repository([
+        TopicTable,
+        GeographicTable,
         CorporationTable,
         PersonTable,
-        GeographicTable,
-        TopicTable,
-    ]
+    ])
+    repo.load(not config['load_from_cache'])
 
-    cache = TableCache()
 
-    # Update cache?
-    if config['load_from_cache'] is False:
-        for importer_cls in Importers:
-            cache.update(importer_cls)
+    for conv_cfg in config['conversions']:
 
-    dataframes = {}
-    for importer_cls in Importers:
-        dataframes[importer_cls.entity_type] = cache.get(importer_cls)
+        # ------------------------------------------------------------
+        # Build
 
-    # Construct Entities object from the dataframes
-    entities = Entities(component_file='storage/components.yml')
-    for entity_type, df in dataframes.items():
-        entities.import_dataframe(
-            df,
-            entity_type,
-            label_transforms=config['label_transforms'],
-            component_extraction=config['component_extraction']
-        )
-    if config['component_extraction']:
-        entities.make_component_entities()
-        entities.components.persist('storage/components.yml')
+        log.info('===== Build entities: %s =====', conv_cfg['name'])
 
-    # Construct graph from the objects
-    graph = Graph(
-        concept_scheme=config['uri_space'],
-        entity_space=config['uri_space'],
-        group_space=config['uri_space'] + 'group/'
-    )
-    graph.load('src/bibbi.scheme.ttl', format='turtle')
-    graph.load('src/bs.ttl', format='turtle')
-    graph.add_entities(entities)
+        entities = Entities()
+        entities.load(repo)
 
-    log.info('Skosify')
-    triples_before = len(graph.graph)
-    graph.skosify()
-    triples_after = len(graph.graph)
-    log.info('Triples changed from %d to %d', triples_before, triples_after)
+        include_unused = False
 
-    if config['delete_unused']:
-        log.info('Deleting unused')
-        triples_before = len(graph.graph)
-        graph.delete_unused()
-        triples_after = len(graph.graph)
-        log.info('Triples changed from %d to %d', triples_before, triples_after)
+        if include_unused is False:
+            before = len(entities)
+            entities = entities.filter(lambda entity: entity.items_as_entry > 0 or entity.items_as_subject > 0)
+            after = len(entities)
+            log.info('Removed %d unused entities' % (before - after))
 
-    log.info('Serializing vocabulary')
-    if config.get('vocabulary_dest_nt') is not None:
-        graph.serialize_nt(config['vocabulary_dest_nt'])
-    if config.get('vocabulary_dest_ttl') is not None:
-        graph.serialize_ttl(config['vocabulary_dest_ttl'])
+        # ------------------------------------------------------------
+        # Serialize
 
-    log.info('Serializing mappings')
-    graph = Graph(
-        concept_scheme=config['uri_space'],
-        entity_space=config['uri_space'],
-        group_space=config['uri_space'] + 'group/'
-    )
-    graph.add_mappings(entities)
-    graph.skosify()
-    if config.get('mapping_dest_nt') is not None:
-        graph.serialize_nt(config['mapping_dest_nt'])
-    if config.get('mapping_dest_ttl') is not None:
-        graph.serialize_nt(config['mapping_dest_ttl'])
+        if 'rdf' in conv_cfg:
+            log.info('===== Serialize: RDF =====')
+            RdfSerializers(conv_cfg['rdf']).serialize(entities, config['destination_dir'])
+
 
     # entities.to_excel_sheets()
     # entities.to_graph()
-
 
     # def test():
     #     reg = TopicRegistry.load()
@@ -223,7 +274,5 @@ if __name__ == '__main__':
     syslog.setFormatter(formatter)
     syslog.addFilter(AppFilter())
 
-    t0 = time.time()
+    main(config)
 
-    main({**configs['common'], **configs['s1']})
-    # main({**configs['common'], **configs['s2']})

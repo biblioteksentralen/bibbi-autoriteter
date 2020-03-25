@@ -14,18 +14,18 @@
 @prefix nkos: <http://w3id.org/nkos#> .
 @prefix isothes: <http://purl.org/iso25964/skos-thes#> .
 @prefix schema: <http://schema.org/> .
-@prefix bibbi: <http://id.bibbi.dev/> .
-@prefix group: <http://id.bibbi.dev/group/> .
 @prefix bs: <http://schema.bibbi.dev/> .
+@prefix : <http://id.bibbi.dev/bibbi/> .
+@prefix group: <http://id.bibbi.dev/bibbi/group/> .
 
-bibbi: a skos:ConceptScheme, void:Dataset, sd:Graph ;
+: a skos:ConceptScheme, void:Dataset, sd:Graph ;
     rdfs:label "Bibbi autoriteter"@nb , "Bibbi autoritetar"@nn ;
     dcterms:title "Bibbi autoriteter"@nb , "Bibbi autoritetar"@nn ;
     dcterms:description "Bibbi authorities is Biblioteksentralen's authority file covering topics, people, corporations and soon works."@en,
         "Bibbi autoriteter er Biblioteksentralens samlede autoritetsfil for emneord, personer, korporasjoner, stedsnavn og på sikt verk."@nb ,
         "Bibbi autoritetar er Biblioteksentralens samla autoritetsfil for emneord, personar, korporasjonar, stadsnamn og på sikt verk."@nb ;
-    dcterms:publisher bibbi:1166735 ;
-    dcterms:creator bibbi:1166735 ;
+    dcterms:publisher :1166735 ;
+    dcterms:creator :1166735 ;
     owl:sameAs <http://id.loc.gov/vocabulary/subjectSchemes/bibbi> ,
         <http://www.wikidata.org/entity/Q4903496> ;
     dcterms:language lexvo:nno,
@@ -33,7 +33,7 @@ bibbi: a skos:ConceptScheme, void:Dataset, sd:Graph ;
     dcterms:type <http://purl.org/dc/dcmitype/Dataset>,
         <http://w3id.org/nkos/nkostype#subject_heading_scheme> .
 
-bibbi:1166735 a foaf:Organization, schema:Organization ;
+:1166735 a foaf:Organization, schema:Organization ;
     rdfs:label "Biblioteksentralen"@en,
         "Biblioteksentralen"@nb ,
         "Biblioteksentralen"@nn ;

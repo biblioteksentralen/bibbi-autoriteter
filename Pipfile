@@ -20,6 +20,7 @@ pytest-testdox = "*"
 feather-format = "*"
 python-dotenv = "*"
 pyodbc = "*"
+pydash = "*"
 
 [requires]
 python_version = "3.8"
