@@ -1,19 +1,14 @@
 # encoding=utf-8
-import pandas as pd
-import logging
 import logging.config
-import yaml
 import psutil
-import time
 import os
-import argparse
 
 from dotenv import load_dotenv
 
-from bibbi.repository import TopicTable, GeographicTable, CorporationTable, PersonTable
+from bibbi.components import Components
+from bibbi.repository import TopicTable, GeographicTable, CorporationTable, PersonTable, Repository
 from bibbi.entities import Entities
 from bibbi.serializers.rdf import RdfSerializers
-from bibbi.db import Db
 
 # gnd: / gndo:
 # bibs.ent, men .ent finnes ikke
@@ -149,32 +144,6 @@ class AppFilter(logging.Filter):
         return True
 
 
-class Repository:
-
-    def __init__(self, table_classes):
-        self.tables = {table_cls.entity_type: table_cls() for table_cls in table_classes}
-
-    def from_db(self):
-        db = Db(server=os.getenv('DB_SERVER'), database=os.getenv('DB_DB'),
-                user=os.getenv('DB_USER'), password=os.getenv('DB_PASSWORD'))
-        for table in self.tables.values():
-            table.load_from_db(db)
-            table.save_to_cache('cache')
-
-    def from_cache(self):
-        for table in self.tables.values():
-            table.load_from_cache('cache')
-
-    def load(self, from_db=False):
-        if from_db:
-            self.from_db()
-        else:
-            self.from_cache()
-
-    def get(self):
-        return self.tables.values()
-
-
 def main(config):
 
     # ------------------------------------------------------------
@@ -191,7 +160,6 @@ def main(config):
     ])
     repo.load(not config['load_from_cache'])
 
-
     for conv_cfg in config['conversions']:
 
         # ------------------------------------------------------------
@@ -202,11 +170,18 @@ def main(config):
         entities = Entities()
         entities.load(repo)
 
-        include_unused = False
+        components = Components()
+        components.load_from_entities(entities)
+
+        # return
+
+        include_unused = True
 
         if include_unused is False:
             before = len(entities)
-            entities = entities.filter(lambda entity: entity.items_as_entry > 0 or entity.items_as_subject > 0)
+            entities = entities.filter(
+                lambda entity: entity.items_as_entry > 0 or entity.items_as_subject > 0
+            )
             after = len(entities)
             log.info('Removed %d unused entities' % (before - after))
 

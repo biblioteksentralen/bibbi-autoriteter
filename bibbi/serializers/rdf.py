@@ -1,5 +1,8 @@
+from __future__ import annotations
 import logging
 import re
+from typing import TYPE_CHECKING, Optional
+
 import rdflib
 import os
 from rdflib import Literal, Namespace, URIRef
@@ -9,6 +12,9 @@ import skosify
 
 from ..util import ensure_parent_dir_exists
 from ..constants import TYPE_PERSON, TYPE_TOPIC, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION
+
+if TYPE_CHECKING:
+    from ..entities import Entity, Entities
 
 # TYPE_TOPIC = 'topic'
 # TYPE_GEOGRAPHIC = 'geographic'
@@ -25,17 +31,17 @@ ISOTHES = Namespace('http://purl.org/iso25964/skos-thes#')
 ONTO = Namespace('http://schema.bibbi.dev/')
 
 
-def initialize_filters(filters):
+def initialize_filters(filters: list) -> dict:
     out = {}
     for filter_name in filters:
         if filter_name == 'type:topic':
-            out[filter_name] = lambda x: x.type == TYPE_TOPIC
+            out[filter_name] = lambda entity: entity.source_type == TYPE_TOPIC
         elif filter_name == 'type:geographic':
-            out[filter_name] = lambda x: x.type == TYPE_GEOGRAPHIC
+            out[filter_name] = lambda entity: entity.source_type == TYPE_GEOGRAPHIC
         elif filter_name == 'type:person':
-            out[filter_name] = lambda x: x.type == TYPE_PERSON
+            out[filter_name] = lambda entity: entity.source_type == TYPE_PERSON
         elif filter_name == 'type:corporation':
-            out[filter_name] = lambda x: x.type == TYPE_CORPORATION
+            out[filter_name] = lambda entity: entity.source_type == TYPE_CORPORATION
         else:
             raise ValueError('Unknown filter: %s' % filter_name)
     return out
@@ -43,7 +49,7 @@ def initialize_filters(filters):
 
 class RdfSerializers:
 
-    def __init__(self, config):
+    def __init__(self, config: dict):
         self.serializers = []
 
         typemap = {
@@ -61,7 +67,7 @@ class RdfSerializers:
                                          **extras)
             self.serializers.append(serializer)
 
-    def serialize(self, entities, destination_dir):
+    def serialize(self, entities: Entities, destination_dir: str):
         for serializer in self.serializers:
             log.info('Starting %s', type(serializer).__name__)
             serializer.serialize(entities, destination_dir)
@@ -75,7 +81,7 @@ class RdfSerializer:
         self.filters = initialize_filters(filters)
         self.products = products
 
-    def filter(self, entities):
+    def filter(self, entities: Entities):
         for filter_name, filter_fn in self.filters.items():
             before = len(entities)
             entities = entities.filter(filter_fn)
@@ -83,7 +89,7 @@ class RdfSerializer:
             log.info('Filter "%s": %d -> %d entities', filter_name, before, after)
         return entities
 
-    def serialize(self, entities, destination_dir):
+    def serialize(self, entities: Entities, destination_dir: str):
         self.load_includes()
         entities = self.filter(entities)
         self.populate_graph(entities)
@@ -99,11 +105,14 @@ class RdfSerializer:
         s1 = len(self.graph)
         log.info('Skosify: %d -> %d triples', s0, s1)
 
-    def store(self, destination_dir):
+    def store(self, destination_dir: str):
         for product in self.products:
             dest_path = os.path.join(destination_dir, product['filename'])
             self.graph.serialize(dest_path, product['format'])
             log.info('Wrote %s', dest_path)
+
+    def populate_graph(self, entities: Entities):
+        pass
 
 
 class RdfEntitySerializer(RdfSerializer):
@@ -112,7 +121,7 @@ class RdfEntitySerializer(RdfSerializer):
         for filename in self.includes:
             self.graph.load(filename, format='turtle')
 
-    def populate_graph(self, entities):
+    def populate_graph(self, entities: Entities):
         self.graph.add_entities(entities)
         self.skosify()
 
@@ -126,21 +135,21 @@ class RdfEntitySerializer(RdfSerializer):
 
 class RdfEntityAndMappingSerializer(RdfEntitySerializer):
 
-    def populate_graph(self, entities):
+    def populate_graph(self, entities: Entities):
         self.graph.add_entities(entities)
         self.graph.add_mappings(entities)
         self.skosify()
 
 
 class RdfMappingSerializer(RdfSerializer):
-    reverse=False
+    reverse = False
 
-    def populate_graph(self, entities):
+    def populate_graph(self, entities: Entities):
         self.graph.add_mappings(entities, reverse=self.reverse)
 
 
 class RdfReverseMappingSerializer(RdfMappingSerializer):
-    reverse=True
+    reverse = True
 
 
 class Graph:
@@ -151,7 +160,7 @@ class Graph:
         ISOTHES.ThesaurusArray,
     ]
 
-    def __init__(self, concept_scheme, entity_ns, group_ns):
+    def __init__(self, concept_scheme: str, entity_ns: str, group_ns: str):
 
         self.scheme_uri = URIRef(concept_scheme)
         self.entity_ns = Namespace(entity_ns)
@@ -163,51 +172,43 @@ class Graph:
         # 'rdflib.plugins.memory', 'Memory')
         self.graph = rdflib.Graph('IOMemory')
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.graph)
 
-    def uri(self, entity):
+    def uri(self, entity: Entity) -> URIRef:
         return self.entity_ns[entity.id]
 
-    def webdewey_uri(self, entity):
-        if entity.webdewey_nr is None:
-            return None
-        if entity.webdewey_approved != '1':
-            # Skip numbers that are not approved
-            return None
-        nr = re.sub('[^0-9.]', '', entity.webdewey_nr)
-        if not re.match(r'^[0-9]{3}(\.[0-9]*)?$', nr):
-            log.warning('Invalid WebDewey Number: %s', entity.webdewey_nr)
-            return None
-        return URIRef('http://dewey.info/class/%s/e23/' % nr)
-
-    def add(self, entity, prop, val):
+    def add(self, entity: Entity, prop, val):
         self.graph.add((self.uri(entity), prop, val))
 
     def add_raw(self, s, p, o):
         self.graph.add((s, p, o))
 
-    def add_mappings(self, entities, reverse=False):
+    def add_mappings(self, entities: Entities, reverse: bool = False):
         for entity in entities:
             self.add_entity_mappings(entity, reverse)
 
-    def add_entity_mappings(self, entity, reverse=False):
-        webdewey_uri = self.webdewey_uri(entity)
-        if webdewey_uri is not None:
+    def add_entity_mappings(self, entity: Entity, reverse: bool = False):
+
+        if entity.webdewey_nr is not None and entity.webdewey_approved == '1':
+            # Note that we skip numbers that are not approved!
+            webdewey_nr = re.sub('[^0-9.]', '', entity.webdewey_nr)
+            webdewey_uri = URIRef('http://dewey.info/class/%s/e23/' % webdewey_nr)
             if reverse:
                 self.add_raw(webdewey_uri, SKOS.closeMatch, self.uri(entity))
             else:
                 self.add_raw(self.uri(entity), SKOS.closeMatch, webdewey_uri)
 
-        # Note: data.unit.no is not live, nor is data.bibsys.no
-        # if entity.noraf_id is not None:
-        #     self.add(entity, SKOS.exactMatch, 'https://data.unit.no/authority/noraf/' + entity.noraf_id)
+        if entity.noraf_id is not None:
+            # Note: authority.bibsys.no doesn't deliver RDF, and livedata.bibsys.no is no more.
+            uri = URIRef('http://authority.bibsys.no/authority/rest/authorities/html/' + entity.noraf_id)
+            self.add(entity, SKOS.exactMatch, uri)
 
-    def add_entities(self, entities):
+    def add_entities(self, entities: Entities):
         for entity in entities:
             self.add_entity(entity)
 
-    def add_entity(self, entity):
+    def add_entity(self, entity: Entity):
         types = {
             'topic': {
                 'uri': ONTO.Topic,
@@ -225,7 +226,15 @@ class Graph:
                 'uri': ONTO.Person,
                 'group': self.group_ns.person,
             },
-            'qualifier':{
+            'corporation-topic': {
+                'uri': ONTO.CorporationTopic,
+                'group': self.group_ns.corporationTopic,
+            },
+            'person-topic': {
+                'uri': ONTO.PersonTopic,
+                'group': self.group_ns.personTopic,
+            },
+            'qualifier': {
                 'uri': ONTO.Qualifier,
                 'group': self.group_ns.qualifier,
             },
@@ -236,6 +245,10 @@ class Graph:
             'law': {
                 'uri': ONTO.Law,
                 'group': self.group_ns.law,
+            },
+            'title': {
+                'uri': ONTO.Title,
+                'group': self.group_ns.title,
             },
         }
 
@@ -249,7 +262,7 @@ class Graph:
 
         self.add(entity, RDF.type, types[entity.type]['uri'])
 
-        self.graph.add((types[entity.type]['group'], SKOS.member, self.uri(entity)))
+        # self.graph.add((types[entity.type]['group'], SKOS.member, self.uri(entity)))
 
         if '-' in entity.id:
             self.add(entity, RDF.type, ONTO.EntityCandidate)
@@ -263,7 +276,7 @@ class Graph:
 
         for label in entity.alt_label:
             for lang, value in label.items():
-                self.add(entity, SKOS.prefLabel, Literal(value, lang))
+                self.add(entity, SKOS.altLabel, Literal(value, lang))
 
         if entity.created is not None:
             value = entity.created.strftime('%Y-%m-%dT%H:%M:%S')
@@ -308,7 +321,12 @@ class Graph:
         self.add_entity_mappings(entity)
 
         # ------------------------------------------------------------
-        # Components
+        # Relations
+        for broader_entity in entity.broader:
+            self.add(entity, SKOS.broader, self.uri(broader_entity))
+
+        # ------------------------------------------------------------
+        # Misc
 
         if entity.qualifier is not None:
             self.add(entity, ONTO.qualifier, Literal(entity.qualifier))
@@ -321,11 +339,6 @@ class Graph:
             self.add(entity, ONTO.legislation, Literal(entity.legislation['nb'], 'nb'))
             self.add(entity, ONTO.legislation, Literal(entity.legislation['nn'], 'nn'))
 
-        for component in entity.components:
-            # SKOS.broader is perhaps a bit questionable here?
-            if entity.id != component.id:
-                self.add(entity, SKOS.broader, self.uri(component))
-
     def skosify(self):
         # Infer parent classes
         skosify.infer.rdfs_classes(self.graph)
@@ -337,6 +350,9 @@ class Graph:
         # skosify.infer.skos_transitive(self.graph, narrower=True)
 
     def delete_unused(self):
+        """
+        Note: This is very slow :/
+        """
         before = len(self.graph)
         query = """
         PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -361,24 +377,24 @@ class Graph:
         after = len(self.graph)
         log.info('Deleted %d triples for unused concepts' % (before - after))
 
-    def load(self, filename, format):
+    def load(self, filename: str, format: str):
         self.graph.load(filename, format=format)
 
-    def serialize(self, filename, file_format):
-        if file_format not in ['ntriples', 'turtle']:
-            raise Error('Invalid file format')
+    def serialize(self, filename: str, file_format: str):
         if file_format == 'ntriples':
-            return self.serialize_nt(filename)
-        if file_format == 'turtle':
-            return self.serialize_ttl(filename)
+            self.serialize_nt(filename)
+        elif file_format == 'turtle':
+            self.serialize_ttl(filename)
+        else:
+            raise ValueError('Invalid file format')
 
-    def serialize_nt(self, filename):
+    def serialize_nt(self, filename: str):
         # The nt serialization is the most efficient (by far)
         ensure_parent_dir_exists(filename)
         self.graph.serialize(filename, format='nt')
         log.info('Serialized graph as: %s', filename)
 
-    def serialize_ttl(self, filename):
+    def serialize_ttl(self, filename: str):
         # Ordered Turtle serialization is super slow, but produces a nice-looking output
         ensure_parent_dir_exists(filename)
         serializer = OrderedTurtleSerializer(self.graph)

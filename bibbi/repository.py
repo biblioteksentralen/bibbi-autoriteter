@@ -1,61 +1,79 @@
+from __future__ import annotations
 import logging
+import re
 import sys
 import os
 from collections import namedtuple
-from copy import copy
-import functools
+from typing import Optional, Generator, ValuesView
+
 import pandas as pd
 import feather
 
-from .constants import TYPE_GEOGRAPHIC, TYPE_TOPIC, TYPE_QUALIFIER, SUB_DELIM, TYPE_CORPORATION, TYPE_PERSON, QUA_DELIM
-from .util import trim, to_str
+from .constants import TYPE_GEOGRAPHIC
+from .db import Db
+from .util import trim, to_str, LanguageMap
 from .references import ReferenceMap
 
 log = logging.getLogger(__name__)
 
 
-class LanguageMap:
+class Repository:
 
-    def __init__(self, nb, nn):
-        self.nb = nb
-        self.nn = nn if pd.notnull(nn) else nb
+    def __init__(self, table_classes):
+        self.tables = {table_cls.entity_type: table_cls() for table_cls in table_classes}
 
-    def __add__(self, other):
-        if isinstance(other, LanguageMap):
-            self.nb += other.nb
-            self.nn += other.nn
-        elif isinstance(other, str):
-            self.nb += other
-            self.nn += other
+    def from_db(self):
+        db = Db(server=os.getenv('DB_SERVER'), database=os.getenv('DB_DB'),
+                user=os.getenv('DB_USER'), password=os.getenv('DB_PASSWORD'))
+        for table in self.tables.values():
+            table.load_from_db(db)
+            table.save_to_cache('cache')
+
+    def from_cache(self):
+        for table in self.tables.values():
+            table.load_from_cache('cache')
+
+    def load(self, from_db=False):
+        if from_db:
+            self.from_db()
         else:
-            raise TypeError
+            self.from_cache()
 
-    def items(self):
-        return (
-            ('nb', self.nb),
-            ('nn', self.nn),
-        )
+    def get(self) -> ValuesView[DataTable]:
+        return self.tables.values()
 
-    # def append(self, format_str, nb, nn):
-    #     self.nb += format_str.format(nb)
-    #     self.nn += format_str.format(nn if pd.notnull(nn) else nb)
-    #
-    # def extend(self, format_str, nb, nn):
-    #     self.value = {
-    #         lang: format_str.format(
-    #             label=self.value[lang],
-    #             value=self.fallback(kwargs, lang)
-    #         )
-    #         for lang in self.value.keys()
-    #     }
+    def get_row(self, row_id: int) -> DataRow:
+        for table in self.get():
+            try:
+                return table.get_row(row_id)
+            except KeyError:
+                pass
+
+    def fast_search(self, value):
+        n = 0
+        for table in self.get():
+            for result in table.fast_search(value):
+                n += 1
+                yield result
+
+        log.info('%d results', n)
+
+    def search(self, value):
+        n = 0
+        for table in self.get():
+            for result in table.search(value):
+                n += 1
+                yield result
+
+        log.info('%d results', n)
 
 
 class DataRow:
     # Wrapper around a DataFrame row that adds domain specific methods for data extraction
 
-    def __init__(self, data: namedtuple):
+    def __init__(self, data: namedtuple, row_type: str):
         self.data = data
-        self.type = None
+        self.type = row_type
 
     def __getattr__(self, key):
         return getattr(self.data, key)
@@ -66,10 +84,13 @@ class DataRow:
     def __contains__(self, key):
         return hasattr(self.data, key)
 
+    def __repr__(self):
+        return '<DataRow bibsent_id="%s" type="%s" display="%s">' % (self.bibsent_id, self.type, self.display_value)
+
     def has(self, key):
         return key in self and not pd.isnull(getattr(self.data, key))
 
-    def get(self, *keys):
+    def get(self, *keys) -> Optional[str]:
         # Fallback chain, get first non-null value
         for key in keys:
             try:
@@ -78,6 +99,19 @@ class DataRow:
                     return value
             except AttributeError:
                 pass
+
+    def get_lang_map(self, nb: str, nn: Optional[str] = None) -> Optional[LanguageMap]:
+        """
+        Get a LanguageMap object for some property.
+
+        :param nb: The property name to retrieve.
+        :param nn: The Nynorsk property name. Defaults to the nb property name + '_nn'
+        :return: LanguageMap or None if the property is not in use.
+        """
+        nn = nn or nb + '_nn'
+        if not self.has(nb):
+            return None
+        return LanguageMap(nb=self.get(nb), nn=self.get(nn, nb))
 
     def is_main_entry(self):
         if self.get('qualifier') or self.get('sub_topic'):
@@ -106,203 +140,30 @@ class DataRow:
                 yield LanguageMap(nb=part, nn=nn_parts[k])
             else:
                 if len(nn_parts) != 0:
-                    log.warning('%s: Number of subdivisions differs: "%s"@nb != "%s"@nn',
+                    log.warning('Number of "%s" subdivisions differs for %s: "%s - %s"@nb != "%s - %s"@nn',
+                                subdiv_type,
                                 self.data.bibsent_id,
-                                ' - '.join(nb_parts), ' - '.join(nn_parts))
+                                self.get('label'),
+                                ' - '.join(nb_parts),
+                                self.get('label_nn') or self.get('label'),
+                                ' - '.join(nn_parts))
                 yield LanguageMap(nb=part, nn=part)
 
     def get_qualifier(self):
         return LanguageMap(nb=self.data.qualifier, nn=self.data.qualifier_nn)
 
-    def get_base_label(self, include_detail=True):
-        """
-        Get the "$a ($q)" part of the label only
-        """
-
-        # 1. Navn ($a)
-        label = LanguageMap(nb=self.get('label'), nn=self.get('label_nn', 'label'))
-
-        # 2. Forklarende tilføyelse i parentes ($q)
-        if include_detail and self.get('detail'):
-            label.nb += ' (%s)' % self.get('detail')
-            label.nn += ' (%s)' % self.get('detail_nn', 'detail')
-
-        return label
-
-    def get_raw_label(self):
-        label = self.get_base_label()
-
-        # Geografisk underavdeling ($z)
-        for subdivison in self.get_subdivisions('sub_geo'):
-            label.nb += SUB_DELIM + subdivison.nb
-            label.nn += SUB_DELIM + subdivison.nn
-
-        # Generell underavdeling ($x)
-        for subdivison in self.get_subdivisions('sub_topic'):
-            label.nb += SUB_DELIM + subdivison.nb
-            label.nn += SUB_DELIM + subdivison.nn
-
-        # Tittel på lover og musikkalbum
-        if self.type == TYPE_CORPORATION and pd.notnull(self.data.work_title):
-            label.nb += SUB_DELIM + self.data.work_title
-            label.nn += SUB_DELIM + self.data.work_title
-
-        # Kolon-kvalifikator (Blir litt gæren av disse!)
-        if self.get('qualifier'):
-            label.nb += QUA_DELIM + self.data.qualifier
-            label.nn += QUA_DELIM + self.get('qualifier_nn', 'qualifier')
-
-        return label
-
-    def get_label(self, include_subdivisions=True, label_transforms=False):
-
-        label = self.get_base_label()
-
-        # -----------------------------------------------------------------------------------
-        # Spesialtilfeller:
-
-        # Spesialtilfelle 1: Geografiske emneord (655): $a og $z kombineres
-        if self.type == TYPE_GEOGRAPHIC:
-            label = self.get_geographic_component()['label']
-
-        # Spesialtilfelle 2: Personer (X00): $a, $b, $t kombineres
-        if self.type == TYPE_PERSON:
-            label = self.get_person_label()
-
-        # Spesialtilfelle 3: Korporasjoner (X10): $a, $b, $t kombineres
-        if self.type == TYPE_CORPORATION:
-            label = self.get_corporate_label()
-
-        if not include_subdivisions:
-            return label
-
-        # -----------------------------------------------------------------------------------
-        # Underinndelinger
-
-        # Geografisk underinndeling ($z)
-        if self.get('sub_geo') and self.type != TYPE_GEOGRAPHIC:
-            geo_label = self.get_geographic_component()['label']
-            label['nb'] += SUB_DELIM + geo_label['nb']
-            label['nn'] += SUB_DELIM + geo_label['nn']
-
-        # Generell underinndeling ($x)
-        if self.get('sub_topic'):
-            label['nb'] += SUB_DELIM + row.sub_topic  # Merk: Kan bestå av flere ledd adskilt av -
-            label['nn'] += SUB_DELIM + self.get('sub_topic_nn', 'sub_topic')
-
-        # Kolon-kvalifikator (Blir litt gæren av disse!)
-        if qualifier := self.get_qualifier():
-            label.nb += QUA_DELIM + qualifier.nb
-            label.nn += QUA_DELIM + qualifier.nn
-
-           #             LanguageMap(nb=self.data.qualifier_nn, nn=self.data.qualifier)
-            # label['nn'] += QUA_DELIM + self.get('qualifier_nn', 'qualifier')
-
-        # entity.set_label('preferred_label', row.work_title, 'nn')   # ???
-        # OBS: Alle lovene har samme Felles_ID. De er altså alle biautoriteter uten en hovedautoritet
-
-        return label
-
-
-class TopicRow(DataRow):
-
-    def __init__(self, data: namedtuple):
-        super().__init__(data)
-        self.type = TYPE_TOPIC
-
-    def get_label(self):
-        return super().get_label()
-
-
-class GeographicRow(DataRow):
-
-    def __init__(self, data: namedtuple):
-        super().__init__(data)
-        self.type = TYPE_GEOGRAPHIC
-
-    def get_label(self):
-        return super().get_label()
-
-
-class PersonRow(DataRow):
-
-    def __init__(self, data: namedtuple):
-        super().__init__(data)
-        self.type = TYPE_PERSON
-
-    def get_label(self):
-        """
-        Returns the person name components (X00 $a, $b or $t) of this subject heading
-        combined into a single string.
-        """
-        label = self.get_base_label()
-
-        if numeration := self.get('numeration'):
-            label.append(' {}', nb=numeration, nn=numeration)
-
-        # OBS, OBS: Ikke bare enkeltpersoner. Typ "slekten", "familien"
-
-        # if title_nb := self.get('title'):
-        #     label['nb'] += ' ' + title_nb
-        #     label['nn'] += ' ' + self.get('title_nn', 'title')
-
-
-        # 'PersonYear': 'date',  # $d Dates associated with name
-        # 'PersonNation': 'nationality',
-
-        # TODO: ....
-
-        # for lab in self.get_subdivisions('sub_unit'):
-        #     label['nb'] = '%s (%s)' % (lab['nb'], label['nb'])
-        #     label['nn'] = '%s (%s)' % (lab['nn'], label['nn'])
-
-        # if pd.notnull(self.work_title):
-        #     # Tittel på lover og musikkalbum (nynorsk-variant finnes ikke)
-        #     label['nb'] = '%s (%s)' % (self.work_title, label['nb'])
-        #     label['nn'] = '%s (%s)' % (self.work_title, label['nn'])
-
-        return label
-
-
-class CorporationRow(DataRow):
-
-    def __init__(self, data: namedtuple):
-        super().__init__(data)
-        self.type = TYPE_CORPORATION
-
-    def get_corporate_label(self):
-        """
-        Returns the corporate name components (X10 $a, $b or $t) of this subject heading
-        combined into a single string.
-        """
-
-        label = self.get_base_label()
-
-        if self.has('sub_unit'):
-            label.extend('{value} ({label})', value={'nb': self.get('sub_unit'), 'nn': self.get('sub_unit_nn')})
-
-        if pd.notnull(self.work_title):
-            # Tittel på lover og musikkalbum (nynorsk-variant finnes ikke)
-            label.extend('{title} ({label})', nb=self.work_title)
-
-            label['nb'] = '%s (%s)' % (self.work_title, label['nb'])
-            label['nn'] = '%s (%s)' % (self.work_title, label['nn'])
-
-        return label
-
 
 class DataTable:
     entity_type = None
     table_name = None
-    columns = []
+    columns: dict = {}
 
     # Override these
     field_code = 'X00'
     id_field = 'AuthID'
-    row_cls = None
 
-    def __init__(self):
-        self.df = pd.DataFrame()
+    def __init__(self, df: Optional[pd.DataFrame] = None):
+        self.df = df or pd.DataFrame()
         self.references = ReferenceMap()
 
     def load_from_db(self, db):
@@ -339,6 +200,7 @@ class DataTable:
     def load_from_cache(self, folder):
         filename = '%s/%s.feather' % (folder, self.entity_type)
         self.df = feather.read_dataframe(filename)
+        self.df.set_index('bibsent_id', drop=False, inplace=True)
         log.info('[%s] Loaded %d x %d table from cache', self.entity_type, self.df.shape[0], self.df.shape[1])
         self.references.load(self)
 
@@ -455,20 +317,48 @@ class DataTable:
             log.error('[%s] Row %s failed validation: Title/Label is NULL', self.entity_type, row.row_id)
             return False
 
+        # Validate
+        if row.webdewey_approved == '1' and row.webdewey_nr is not None and not re.match(r'^[0-9]{3}(/?\.[0-9]+/?[0-9]*)?$', row.webdewey_nr):
+            log.warning('Invalid approved WebDewey number: %s - %s - %s - %s',
+                        self.entity_type,
+                        row.bibsent_id,
+                        row.display_value,
+                        row.webdewey_nr)
+
         return True
 
-    def make_row(self, values):
-        return self.row_cls(values)
+    def refers_to(self, row: DataRow) -> Optional[DataRow]:
+        return self.references.get(row.bibsent_id)
 
-    def rows(self):
+    def make_row(self, values: namedtuple) -> DataRow:
+        return DataRow(values, self.entity_type)
+
+    def get_row(self, row_id: str) -> DataRow:
+        return self.make_row(self.df.loc[str(row_id)])
+
+    def rows(self) -> Generator[DataRow]:
         """
         DataRow generator
         """
         for row in self.df.itertuples():  # Note: itertuples is *much* faster than iterrows! Cut loading time from 28s to 4s
             yield self.make_row(row)
 
-    def refers_to(self, row: DataRow):
-        return self.references.get(row.bibsent_id)
+    def fast_search(self, value: str) -> Generator[DataRow]:
+
+        search_fields = ['label', 'sub_topic', 'sub_geo', 'sub_unit', 'qualifier', 'detail']
+        search_fields = [x for x in search_fields if x in self.columns.values()]
+
+        query = ' | '.join(['(%s == "%s")' % (field, value) for field in search_fields])
+
+        results = self.df.query(query)
+
+        for res in results.itertuples():
+            yield self.make_row(res)
+
+    def search(self, value: str) -> Generator[DataRow]:
+        results = self.df[self.df.apply(lambda row: row.str.contains(value, case=False).any(), axis=1)]
+        for res in results.itertuples():
+            yield self.make_row(res)
 
 
 class TopicTable(DataTable):
@@ -476,7 +366,6 @@ class TopicTable(DataTable):
     table_name = 'AuthorityTopic'
     id_field = 'AuthID'
     field_code = 'X50'
-    row_cls = TopicRow
     columns = {
         'AuthID': 'row_id',  # Lokal id for denne tabellen
         'Title': 'label',  # Emne ($a), 13439 unike verdier
@@ -525,7 +414,6 @@ class GeographicTable(DataTable):
     table_name = 'AuthorityGeographic'
     id_field = 'TopicID'
     field_code = 'X51'
-    row_cls = GeographicRow
     columns = {
         'TopicID': 'row_id',                         # Lokal ID for tabellen
         'GeoName': 'label',                      # Emne ($a), 13439 unike verdier
@@ -569,7 +457,6 @@ class CorporationTable(DataTable):
     table_name = 'AuthorityCorp'
     id_field = 'CorpID'
     field_code = 'X10'
-    row_cls = CorporationRow
     columns = {
         'CorpID': 'row_id',
         'CorpName': 'label',
@@ -633,7 +520,6 @@ class PersonTable(DataTable):
     table_name = 'AuthorityPerson'
     id_field = 'PersonId'
     field_code = 'X00'
-    row_cls = PersonRow
     columns = {
         'PersonId': 'row_id',
         'PersonName': 'label', # $a Personal name
