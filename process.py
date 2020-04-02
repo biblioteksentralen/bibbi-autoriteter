@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 
 from bibbi.components import Components
-from bibbi.repository import TopicTable, GeographicTable, CorporationTable, PersonTable, Repository
+from bibbi.repository import TopicTable, GeographicTable, GenreTable, CorporationTable, PersonTable, Repository
 from bibbi.entities import Entities
 from bibbi.serializers.rdf import RdfSerializers
 
@@ -17,7 +17,7 @@ from bibbi.serializers.rdf import RdfSerializers
 
 config = {
     'destination_dir': 'out/',
-    'load_from_cache': True,
+    'load_from_cache': False,
     'conversions': [
         {
             'name': 'bibbi',
@@ -37,6 +37,16 @@ config = {
                     'src/bibbi.scheme.ttl',
                 ],
                 'variants': [
+                    {
+                        'type': 'entities+mappings',
+                        'filters': [
+                            'type:genre',
+                        ],
+                        'products': [{
+                            'filename': 'bibbi-genre.nt',
+                            'format': 'ntriples',
+                        }]
+                    },
                     {
                         'type': 'entities+mappings',
                         'filters': [
@@ -155,6 +165,7 @@ def main(config):
     repo = Repository([
         TopicTable,
         GeographicTable,
+        GenreTable,
         CorporationTable,
         PersonTable,
     ])

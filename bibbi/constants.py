@@ -7,6 +7,7 @@ TYPE_TOPIC = 'topic'
 TYPE_GEOGRAPHIC = 'geographic'
 TYPE_CORPORATION = 'corporation'
 TYPE_PERSON = 'person'
+TYPE_GENRE = 'genre'
 TYPE_QUALIFIER = 'qualifier'
 
 # Derived types

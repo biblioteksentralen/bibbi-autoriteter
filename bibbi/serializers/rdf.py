@@ -11,7 +11,7 @@ from otsrdflib import OrderedTurtleSerializer
 import skosify
 
 from ..util import ensure_parent_dir_exists
-from ..constants import TYPE_PERSON, TYPE_TOPIC, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION
+from ..constants import TYPE_PERSON, TYPE_TOPIC, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION
 
 if TYPE_CHECKING:
     from ..entities import Entity, Entities
@@ -38,6 +38,8 @@ def initialize_filters(filters: list) -> dict:
             out[filter_name] = lambda entity: entity.source_type == TYPE_TOPIC
         elif filter_name == 'type:geographic':
             out[filter_name] = lambda entity: entity.source_type == TYPE_GEOGRAPHIC
+        elif filter_name == 'type:genre':
+            out[filter_name] = lambda entity: entity.source_type == TYPE_GENRE
         elif filter_name == 'type:person':
             out[filter_name] = lambda entity: entity.source_type == TYPE_PERSON
         elif filter_name == 'type:corporation':
@@ -216,6 +218,10 @@ class Graph:
             },
             'geographic': {
                 'uri': ONTO.Place,
+                'group': self.group_ns.place,
+            },
+            'genre': {
+                'uri': ONTO.FormGenre,
                 'group': self.group_ns.place,
             },
             'corporation': {

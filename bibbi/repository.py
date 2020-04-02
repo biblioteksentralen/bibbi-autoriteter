@@ -131,10 +131,10 @@ class DataRow:
             raise ValueError('Invalid subdivision type: %s', subdiv_type)
         if not self.has(subdiv_type):
             return
-        nb_parts = self.get(subdiv_type).split(' - ')
+        nb_parts = re.split(r' - |\$z', self.get(subdiv_type))
         nn_parts = []
         if self.has(subdiv_type + '_nn'):
-            nn_parts = self.get(subdiv_type + '_nn').split(' - ')
+            nn_parts = re.split(r' - |\$z', self.get(subdiv_type + '_nn'))
         for k, part in enumerate(nb_parts):
             if len(nb_parts) == len(nn_parts):
                 yield LanguageMap(nb=part, nn=nn_parts[k])
@@ -166,6 +166,21 @@ class DataTable:
         self.df = df or pd.DataFrame()
         self.references = ReferenceMap()
 
+    def get_select_query(self) -> str:
+        return 'SELECT * FROM dbo.%s WHERE Approved=1 AND Bibsent_ID IS NOT NULL' % self.table_name
+
+    def get_item_count_query(self, field_codes: list) -> str:
+        return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
+            LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
+            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
+            WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
+            GROUP BY a.Bibsent_ID
+        """ % {
+            'table': self.table_name,
+            'id_field': self.id_field,
+            'field_codes': ', '.join(["'%s'" % field_code for field_code in field_codes]),
+        }
+
     def load_from_db(self, db):
         """
         Load rows for a given entity type into a DataFrame for further processing.
@@ -173,7 +188,7 @@ class DataTable:
         """
         log.info('[%s] Retrieving records from database', self.entity_type)
         with db.cursor() as cursor:
-            cursor.execute('SELECT * FROM dbo.%s WHERE Approved=1 AND Bibsent_ID IS NOT NULL' % self.table_name)
+            cursor.execute(self.get_select_query())
             columns = []
             for column in cursor.description:
                 if column[0] not in self.columns:
@@ -218,16 +233,7 @@ class DataTable:
                 'items_as_subject': [self.field_code.replace('X', '6')],
             }
             for key, field_codes in field_code_map.items():
-                cursor.execute("""SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
-                    LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
-                    LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
-                    WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
-                    GROUP BY a.Bibsent_ID
-                """ % {
-                    'table': self.table_name,
-                    'id_field': self.id_field,
-                    'field_codes': ', '.join(["'%s'" % field_code for field_code in field_codes]),
-                })
+                cursor.execute(self.get_item_count_query(field_codes))
                 rows = []
                 for row in cursor:
                     row = [trim(to_str(c)) for c in row]
@@ -318,7 +324,7 @@ class DataTable:
             return False
 
         # Validate
-        if row.webdewey_approved == '1' and row.webdewey_nr is not None and not re.match(r'^[0-9]{3}(/?\.[0-9]+/?[0-9]*)?$', row.webdewey_nr):
+        if row.get('webdewey_approved') == '1' and row.webdewey_nr is not None and not re.match(r'^[0-9]{3}(/?\.[0-9]+/?[0-9]*)?$', row.webdewey_nr):
             log.warning('Invalid approved WebDewey number: %s - %s - %s - %s',
                         self.entity_type,
                         row.bibsent_id,
@@ -451,6 +457,56 @@ class GeographicTable(DataTable):
         'Comment': 'comment',                    # Intern note, omtrent ikke i bruk
     }
 
+
+class GenreTable(DataTable):
+    entity_type = 'genre'
+    table_name = 'AuthorityGenre'
+    id_field = 'TopicID'
+    field_code = 'X55'
+    columns = {
+        'TopicID': 'row_id',  # Lokal id for denne tabellen
+        'Title': 'label',  # Emne ($a), 13439 unike verdier
+        'Title_N': 'label_nn',  #
+        'GeoUnderTopic': 'sub_geo',  # - Geografisk underinndeling ($z), 879 unike
+        'GeoUnderTopic_N': 'sub_geo_nn',  # 280 unike
+        'TopicLang': 'topic_lang',  # ('ikke i bruk'?)
+        'FieldCode': 'field_code',  # 655
+        'Security_ID': 'security_id',  # (bool)
+        'UserID': 'userId',  # (ikke i bruk?)
+        'LastChanged': 'modified',  # (datetime)
+        'Created': 'created',  # (datetime)
+        'ApproveDate': 'approve_date',  # (ikke brukt)
+        'ApprovedUserID': 'approved_by',  # (ikke brukt)
+        'Reference': 'ref',  # hvorvidt noe er en henvisning, muligens ikke i bruk
+        'ReferenceNr': 'ref_id',  # TopicID henvisningen peker til
+        '_DisplayValue': 'display_value',  # (computed)
+        'BibbiNr': 'bibbi_nr',  # (ikke i bruk)
+        'NotInUse': 'not_in_use',  # (ikke i bruk)
+        'Source': 'source',  # (ikke i bruk)
+        'Bibsent_ID': 'bibsent_id',  # Identifikator for bruk i $0
+        'Comment': 'comment',  # Intern note, ikke i bruk
+    }
+
+    def get_select_query(self) -> str:
+        """
+        The genre table does not have an Approved column.
+        """
+        return 'SELECT * FROM dbo.%s WHERE Bibsent_ID IS NOT NULL' % self.table_name
+
+    def get_item_count_query(self, field_codes: list) -> str:
+        """
+        The genre table does not have an Approved column.
+        """
+        return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
+            LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
+            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
+            WHERE a.Bibsent_ID IS NOT NULL
+            GROUP BY a.Bibsent_ID
+        """ % {
+            'table': self.table_name,
+            'id_field': self.id_field,
+            'field_codes': ', '.join(["'%s'" % field_code for field_code in field_codes]),
+        }
 
 class CorporationTable(DataTable):
     entity_type = 'corporation'
