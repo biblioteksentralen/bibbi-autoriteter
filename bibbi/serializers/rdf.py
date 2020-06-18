@@ -11,18 +11,12 @@ from otsrdflib import OrderedTurtleSerializer
 import skosify
 
 from ..util import ensure_parent_dir_exists
-from ..constants import TYPE_PERSON, TYPE_TOPIC, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION
+from ..constants import TYPE_PERSON, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION, \
+    TYPE_TITLE, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_QUALIFIER, TYPE_COMPLEX, \
+    TYPE_TITLE_SUBJECT
 
 if TYPE_CHECKING:
     from ..entities import Entity, Entities
-
-# TYPE_TOPIC = 'topic'
-# TYPE_GEOGRAPHIC = 'geographic'
-# TYPE_CORPORATION = 'corporation'
-# TYPE_PERSON = 'person'
-# TYPE_QUALIFIER = 'qualifier'
-# TYPE_COMPLEX = 'complex'
-# TYPE_LAW = 'law'
 
 log = logging.getLogger(__name__)
 
@@ -34,16 +28,10 @@ ONTO = Namespace('http://schema.bibbi.dev/')
 def initialize_filters(filters: list) -> dict:
     out = {}
     for filter_name in filters:
-        if filter_name == 'type:topic':
-            out[filter_name] = lambda entity: entity.source_type == TYPE_TOPIC
-        elif filter_name == 'type:geographic':
-            out[filter_name] = lambda entity: entity.source_type == TYPE_GEOGRAPHIC
-        elif filter_name == 'type:genre':
-            out[filter_name] = lambda entity: entity.source_type == TYPE_GENRE
-        elif filter_name == 'type:person':
-            out[filter_name] = lambda entity: entity.source_type == TYPE_PERSON
-        elif filter_name == 'type:corporation':
-            out[filter_name] = lambda entity: entity.source_type == TYPE_CORPORATION
+        if match := re.match('^(.+?):(.+)$', filter_name):
+            filter_name = match.group(1)
+            filter_value = match.group(2)
+            out[filter_name] = lambda entity: getattr(entity, filter_name) == filter_value
         else:
             raise ValueError('Unknown filter: %s' % filter_name)
     return out
@@ -212,49 +200,41 @@ class Graph:
 
     def add_entity(self, entity: Entity):
         types = {
-            'topic': {
+            TYPE_TOPICAL: {
                 'uri': ONTO.Topic,
-                'group': self.group_ns.topic,
             },
-            'geographic': {
+            TYPE_GEOGRAPHIC: {
                 'uri': ONTO.Place,
-                'group': self.group_ns.place,
             },
-            'genre': {
+            TYPE_GENRE: {
                 'uri': ONTO.FormGenre,
-                'group': self.group_ns.place,
             },
-            'corporation': {
+            TYPE_CORPORATION: {
                 'uri': ONTO.Corporation,
-                'group': self.group_ns.corporation,
             },
-            'person': {
+            TYPE_PERSON: {
                 'uri': ONTO.Person,
-                'group': self.group_ns.person,
             },
-            'corporation-topic': {
-                'uri': ONTO.CorporationTopic,
-                'group': self.group_ns.corporationTopic,
+            TYPE_CORPORATION_SUBJECT: {
+                'uri': ONTO.CorporationSubject,
             },
-            'person-topic': {
-                'uri': ONTO.PersonTopic,
-                'group': self.group_ns.personTopic,
+            TYPE_PERSON_SUBJECT: {
+                'uri': ONTO.PersonSubject,
             },
-            'qualifier': {
+            TYPE_QUALIFIER: {
                 'uri': ONTO.Qualifier,
-                'group': self.group_ns.qualifier,
             },
-            'complex': {
+            TYPE_COMPLEX: {
                 'uri': ONTO.Complex,
-                'group': self.group_ns.complex,
             },
-            'law': {
+            TYPE_LAW: {
                 'uri': ONTO.Law,
-                'group': self.group_ns.law,
             },
-            'title': {
+            TYPE_TITLE: {
                 'uri': ONTO.Title,
-                'group': self.group_ns.title,
+            },
+            TYPE_TITLE_SUBJECT: {
+                'uri': ONTO.TitleAsSubject,
             },
         }
 

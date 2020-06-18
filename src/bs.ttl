@@ -35,13 +35,11 @@ bs:AuthorityResource a rdfs:Class , owl:Class ;
   rdfs:comment "Overordnet klasse av ting"@nb ;
 .
 
-# skos:Concept
 bs:Topic a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   rdfs:label "Generelt emne"@nb ,
     "Generelt emne"@nn ,
-    "General topic"@en ;
-  rdfs:comment "Topical subject."@nb ;
+    "Topical subject"@en ;
 .
 
 # schema:Place
@@ -130,9 +128,9 @@ bs:itemsAsEntry a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
   rdfs:range rdfs:Literal ;
-  rdfs:label "Antall dokumenter (som innførsel)"@nb ,
-    "Number of documents (as entry)"@en ;
-  rdfs:comment "Number of documents in the Bibbi catalogue using this authority record as entry."@en ;
+  rdfs:label "Antall dokumenter (som ansvarlig)"@nb ,
+    "Number of documents (as responsible)"@en ;
+  rdfs:comment "Number of documents in the Bibbi catalogue that this agent has created or contributed to."@en ;
 .
 
 bs:itemsAsSubject a rdf:Property , owl:DatatypeProperty ;
@@ -141,7 +139,7 @@ bs:itemsAsSubject a rdf:Property , owl:DatatypeProperty ;
   rdfs:range rdfs:Literal ;
   rdfs:label "Antall dokumenter (som emne)"@nb ,
     "Number of documents (as subject)"@en ;
-  rdfs:comment "Number of documents in the Bibbi catalogue using this authority record as subject."@en ;
+  rdfs:comment "Number of documents in the Bibbi catalogue where this agent is a subject."@en ;
 .
 
 bs:norafId a rdf:Property , owl:DatatypeProperty ;
@@ -150,7 +148,7 @@ bs:norafId a rdf:Property , owl:DatatypeProperty ;
   rdfs:range rdfs:Literal ;
   rdfs:label "NORAF-ID"@nb ,
     "NORAF ID"@en ;
-  rdfs:comment "Identifier in Norwegian Authority File (this property an RDF version of the authority file is made available)."@en ;
+  rdfs:comment "Identifier in the Norwegian Authority File (The range of this property is a literal until an RDF version of NORAF is made available from Unit)."@en ;
 .
 
 bs:nationality a rdf:Property , owl:DatatypeProperty ;
@@ -159,7 +157,7 @@ bs:nationality a rdf:Property , owl:DatatypeProperty ;
   rdfs:range rdfs:Literal ;
   rdfs:label "Nasjonalitet"@nb ,
     "Nationality"@en ;
-  rdfs:comment "Nationality of a person."@en ;
+  rdfs:comment "Nationality of a person. (TODO: Link to entry in the 'bs-nasj' vocabularyh, once published)"@en ;
 .
 
 bs:birthDate a rdf:Property , owl:DatatypeProperty ;
@@ -180,11 +178,3 @@ bs:deathDate a rdf:Property , owl:DatatypeProperty ;
   rdfs:comment "Death year or date for a person."@en ;
 .
 
-bs:nationality a rdf:Property , owl:DatatypeProperty ;
-  rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
-  rdfs:range rdfs:Literal ;
-  rdfs:label "Nasjonalitet"@nb ,
-    "Nationality"@en ;
-  rdfs:comment "Nationality of a person."@en ;
-.

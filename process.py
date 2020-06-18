@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 
 from bibbi.components import Components
+from bibbi.lookup import LookupService
 from bibbi.repository import TopicTable, GeographicTable, GenreTable, CorporationTable, PersonTable, Repository
 from bibbi.entities import Entities
 from bibbi.serializers.rdf import RdfSerializers
@@ -17,7 +18,7 @@ from bibbi.serializers.rdf import RdfSerializers
 
 config = {
     'destination_dir': 'out/',
-    'load_from_cache': False,
+    'load_from_cache': True,
     'conversions': [
         {
             'name': 'bibbi',
@@ -40,7 +41,7 @@ config = {
                     {
                         'type': 'entities+mappings',
                         'filters': [
-                            'type:genre',
+                            'source_type:genre',
                         ],
                         'products': [{
                             'filename': 'bibbi-genre.nt',
@@ -50,17 +51,17 @@ config = {
                     {
                         'type': 'entities+mappings',
                         'filters': [
-                            'type:topic',
+                            'source_type:topical',
                         ],
                         'products': [{
-                            'filename': 'bibbi-topic.nt',
+                            'filename': 'bibbi-topical.nt',
                             'format': 'ntriples',
                         }]
                     },
                     {
                         'type': 'entities+mappings',
                         'filters': [
-                            'type:geographic',
+                            'source_type:geographic',
                         ],
                         'products': [{
                             'filename': 'bibbi-geographic.nt',
@@ -70,7 +71,7 @@ config = {
                     {
                         'type': 'entities+mappings',
                         'filters': [
-                            'type:person',
+                            'source_type:person',
                         ],
                         'products': [{
                             'filename': 'bibbi-person.nt',
@@ -80,7 +81,7 @@ config = {
                     {
                         'type': 'entities+mappings',
                         'filters': [
-                            'type:corporation',
+                            'source_type:corporation',
                         ],
                         'products': [{
                             'filename': 'bibbi-corporation.nt',
@@ -181,8 +182,9 @@ def main(config):
         entities = Entities()
         entities.load(repo)
 
-        components = Components()
-        components.load_from_entities(entities)
+        lookup = LookupService()
+        components = Components(entities, lookup)
+        components.load()
 
         # return
 

@@ -7,8 +7,7 @@
 - Rundt 35 000 emnestrenger, 6500 geografiske emnestrenger, 155 000 personautoriteter
 - Emneordspraksisen har sprunget ut fra *Sears List of Subject Headings*. Termeneer knyttet opp mot Deweys desimalklassifikasjonssystem, 5. norske utgave.<ref> ABM Skrift #60, s. 74</ref>
 - Kvalifikator (satt med kolon) brukes for å vise emnets plassering i Dewey-tabellen.
-
-- Biautoriteter har samme Felles_ID, men ulik Bibsent_ID
+- Biautoriteter har samme `Felles_ID`, men ulik `Bibsent_ID`
 
 ### URI-er
 
@@ -55,13 +54,22 @@ maintaining our own metadata.
 ### Interactive
 
 ```
-from bibbi.importers import TopicImporter, GeoImporter, CorpImporter
+from bibbi.repository import TopicTable, GeographicTable, GenreTable, CorporationTable, PersonTable, Repository
+
 from bibbi.entities import Entities
 
+repo = Repository([
+	TopicTable,
+	GeographicTable,
+	GenreTable,
+	CorporationTable,
+	PersonTable,
+])
+repo.load()
+
 entities = Entities()
-importer = TopicImporter()
-importer.from_feather('cache')
-entities.import_from_dataframe(importer.df, importer.entity_type)
+entities.load(repo)
+
 entity = entities.get('1102795')
 entity.data
 

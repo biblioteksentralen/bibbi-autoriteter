@@ -131,10 +131,10 @@ class DataRow:
             raise ValueError('Invalid subdivision type: %s', subdiv_type)
         if not self.has(subdiv_type):
             return
-        nb_parts = re.split(r' - |\$z', self.get(subdiv_type))
+        nb_parts = re.split(r' - |\$z|\$x', self.get(subdiv_type))
         nn_parts = []
         if self.has(subdiv_type + '_nn'):
-            nn_parts = re.split(r' - |\$z', self.get(subdiv_type + '_nn'))
+            nn_parts = re.split(r' - |\$z|\$x', self.get(subdiv_type + '_nn'))
         for k, part in enumerate(nb_parts):
             if len(nb_parts) == len(nn_parts):
                 yield LanguageMap(nb=part, nn=nn_parts[k])
@@ -324,8 +324,8 @@ class DataTable:
             return False
 
         # Validate
-        if row.get('webdewey_approved') == '1' and row.webdewey_nr is not None and not re.match(r'^[0-9]{3}(/?\.[0-9]+/?[0-9]*)?$', row.webdewey_nr):
-            log.warning('Invalid approved WebDewey number: %s - %s - %s - %s',
+        if row.get('webdewey_approved') == '1' and row.webdewey_nr is not None and not re.match(r'^[0-9]{3}(/\.[0-9]+|\.[0-9]+(/?[0-9]+)?)?$', row.webdewey_nr):
+            log.warning('Invalid approved WebDewey number [%s | %s | %s]\t"%s"',
                         self.entity_type,
                         row.bibsent_id,
                         row.display_value,
@@ -368,7 +368,7 @@ class DataTable:
 
 
 class TopicTable(DataTable):
-    entity_type = 'topic'
+    entity_type = 'topical'
     table_name = 'AuthorityTopic'
     id_field = 'AuthID'
     field_code = 'X50'
