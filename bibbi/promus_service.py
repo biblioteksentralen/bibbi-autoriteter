@@ -4,7 +4,7 @@ import re
 import sys
 import os
 from collections import namedtuple
-from typing import Optional, Generator, ValuesView
+from typing import Optional, Generator, List, Callable
 
 import pandas as pd
 import feather
@@ -17,63 +17,54 @@ from .references import ReferenceMap
 log = logging.getLogger(__name__)
 
 
-class Repository:
+class PromusService:
 
-    def __init__(self, table_classes):
-        self.tables = {table_cls.entity_type: table_cls() for table_cls in table_classes}
+    def __init__(self, connection: Db):
+        self.connection = connection
 
-    def from_db(self):
-        db = Db(server=os.getenv('DB_SERVER'), database=os.getenv('DB_DB'),
-                user=os.getenv('DB_USER'), password=os.getenv('DB_PASSWORD'))
-        for table in self.tables.values():
-            table.load_from_db(db)
-            table.save_to_cache('cache')
+    def extract(self, table: PromusTable) -> PromusTable:
+        return table.load_from_db(self.connection)
 
-    def from_cache(self):
-        for table in self.tables.values():
-            table.load_from_cache('cache')
-
-    def load(self, from_db=False):
-        if from_db:
-            self.from_db()
-        else:
-            self.from_cache()
-
-    def get(self) -> ValuesView[DataTable]:
-        return self.tables.values()
-
-    def get_row(self, row_id: int) -> DataRow:
-        for table in self.get():
-            try:
-                return table.get_row(row_id)
-            except KeyError:
-                pass
-
-    def fast_search(self, value):
-        n = 0
-        for table in self.get():
-            for result in table.fast_search(value):
-                n += 1
-                yield result
-
-        log.info('%d results', n)
-
-    def search(self, value):
-        n = 0
-        for table in self.get():
-            for result in table.search(value):
-                n += 1
-                yield result
-
-        log.info('%d results', n)
+    # def get(self, table_type=None) -> List[PromusTable]:
+    #     if table_type is not None:
+    #         return [table for table in self.tables.values() if isinstance(table, table_type)]
+    #     return list(self.tables.values())
+    #
+    # def get_row(self, row_id: int) -> DataRow:
+    #     for table in self.get():
+    #         try:
+    #             return table.get_row(str(row_id))
+    #         except KeyError:
+    #             pass
+    #
+    # def fast_search(self, value):
+    #     n = 0
+    #     for table in self.get():
+    #         if hasattr(table, 'fast_search'):
+    #             for result in table.fast_search(value):
+    #                 n += 1
+    #                 yield result
+    #
+    #     log.info('%d results', n)
+    #
+    # def search(self, value):
+    #     n = 0
+    #     for table in self.get():
+    #         for result in table.search(value):
+    #             n += 1
+    #             yield result
+    #
+    #    log.info('%d results', n)
 
 
 class DataRow:
     # Wrapper around a DataFrame row that adds domain specific methods for data extraction
 
-    def __init__(self, data: namedtuple, row_type: str):
+    def __init__(self, data: namedtuple, row_type: str, index_column: str, display_value: str):
         self.data = data
         self.type = row_type
+        self.index_column = index_column
+        self.display_value = display_value
 
     def __getattr__(self, key):
         return getattr(self.data, key)
@@ -85,7 +76,9 @@ class DataRow:
         return hasattr(self.data, key)
 
     def __repr__(self):
-        return '<DataRow bibsent_id="%s" type="%s" display="%s">' % (self.bibsent_id, self.type, self.display_value)
+        return '<DataRow type="%s" id="%s" label="%s">' % (getattr(self, self.index_column),
+                                                           self.type,
+                                                           getattr(self, self.display_value))
 
     def has(self, key):
         return key in self and not pd.isnull(getattr(self.data, key))
@@ -153,7 +146,8 @@ class DataRow:
         return LanguageMap(nb=self.data.qualifier, nn=self.data.qualifier_nn)
 
 
-class DataTable:
+class PromusTable:
+    vocabulary_code = None
     entity_type = None
     table_name = None
     columns: dict = {}
@@ -162,24 +156,15 @@ class DataTable:
     field_code = 'X00'
     id_field = 'AuthID'
 
+    # Optionally, override these
+    index_column = 'bibsent_id'
+    display_column = 'display_value'
+
     def __init__(self, df: Optional[pd.DataFrame] = None):
         self.df = df or pd.DataFrame()
-        self.references = ReferenceMap()
 
     def get_select_query(self) -> str:
-        return 'SELECT * FROM dbo.%s WHERE Approved=1 AND Bibsent_ID IS NOT NULL' % self.table_name
-
-    def get_item_count_query(self, field_codes: list) -> str:
-        return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
-            LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
-            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
-            WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
-            GROUP BY a.Bibsent_ID
-        """ % {
-            'table': self.table_name,
-            'id_field': self.id_field,
-            'field_codes': ', '.join(["'%s'" % field_code for field_code in field_codes]),
-        }
+        return 'SELECT * FROM dbo.%s' % self.table_name
 
     def load_from_db(self, db):
         """
@@ -201,30 +186,59 @@ class DataTable:
                 row = [trim(to_str(c)) for c in row]
                 rows.append(row)
                 # break
-            df = pd.DataFrame(rows, dtype='str', columns=columns)
-            df = self.normalize(df)
-            df = self.validate_references(df)
-            df.set_index('bibsent_id', drop=False, inplace=True)
 
-        self.df = df
+        self.df = pd.DataFrame(rows, dtype='str', columns=columns)
+        self.df.set_index(self.index_column, drop=False, inplace=True)
         log.info('[%s] Loaded %d x %d table', self.entity_type, self.df.shape[0], self.df.shape[1])
-        self.add_document_counts(db)
-        log.info('[%s] Table extended to %d x %d', self.entity_type, self.df.shape[0], self.df.shape[1])
-        self.references.load(self)
+        self.after_load_from_db(db)
+        return self
 
-    def load_from_cache(self, folder):
-        filename = '%s/%s.feather' % (folder, self.entity_type)
-        self.df = feather.read_dataframe(filename)
-        self.df.set_index('bibsent_id', drop=False, inplace=True)
-        log.info('[%s] Loaded %d x %d table from cache', self.entity_type, self.df.shape[0], self.df.shape[1])
-        self.references.load(self)
+    def after_load_from_db(self, db):
+        return self
 
-    def save_to_cache(self, folder):
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        filename = '%s/%s.feather' % (folder, self.entity_type)
-        feather.write_dataframe(self.df, filename)
-        log.info('[%s] Saved %d x %d table to cache', self.entity_type, self.df.shape[0], self.df.shape[1])
+    def after_load_from_cache(self):
+        return self
+
+    def make_row(self, values: namedtuple) -> DataRow:
+        return DataRow(values, self.entity_type, self.index_column, self.display_column)
+
+    def get_row(self, row_id: str) -> DataRow:
+        return self.make_row(self.df.loc[str(row_id)])
+
+    def rows(self) -> Generator[DataRow]:
+        """
+        DataRow generator
+        """
+        for row in self.df.itertuples():  # Note: itertuples is *much* faster than iterrows! Cut loading time from 28s to 4s
+            yield self.make_row(row)
+
+    def search(self, value: str) -> Generator[DataRow]:
+        results = self.df[self.df.apply(lambda row: row.str.contains(value, case=False).any(), axis=1)]
+        for res in results.itertuples():
+            yield self.make_row(res)
+
+
+class PromusAuthorityTable(PromusTable):
+    vocabulary_code = 'bibbi'
+
+    def __init__(self, df: Optional[pd.DataFrame] = None):
+        super(PromusAuthorityTable, self).__init__(df)
+        self.references = ReferenceMap()
+
+    def get_select_query(self) -> str:
+        return 'SELECT * FROM dbo.%s WHERE Approved=1 AND Bibsent_ID IS NOT NULL' % self.table_name
+
+    def get_item_count_query(self, field_codes: list) -> str:
+        return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
+            LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
+            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
+            WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
+            GROUP BY a.Bibsent_ID
+        """ % {
+            'table': self.table_name,
+            'id_field': self.id_field,
+            'field_codes': ', '.join(["'%s'" % field_code for field_code in field_codes]),
+        }
 
     def add_document_counts(self, db):
         with db.cursor() as cursor:
@@ -247,21 +261,29 @@ class DataTable:
                 self.df[key] = pd.to_numeric(self.df[key], downcast='integer')  #.astype('int8')  # pd.to_numeric(item_count_df.item_count, downcast='integer')
                 log.info('[%s] Document counts (%s): %d', self.entity_type, key, self.df[key].sum())
 
-    def normalize(self, df):
+    def after_load_from_db(self, db):
         """
         Do some initial normalization of the data.
         """
-        df.created = pd.to_datetime(df.created)
-        df.modified = pd.to_datetime(df.modified)
+        self.df.created = pd.to_datetime(self.df.created)
+        self.df.modified = pd.to_datetime(self.df.modified)
+        self.df = self.df[self.df.apply(self.normalize_row, axis=1)]
 
-        return df[df.apply(self.normalize_row, axis=1)]
+        self.add_document_counts(db)
+        log.info('[%s] Table extended to %d x %d', self.entity_type, self.df.shape[0], self.df.shape[1])
 
-    def validate_references(self, df):
+        self.validate_references()
+        self.references.load(self)
+
+    def after_load_from_cache(self):
+        self.references.load(self)
+
+    def validate_references(self):
         """
         Validate references and remove rows containing invalid ones.
         """
-        ids = set(df.row_id.tolist())
-        df_refs = df[df.ref_id.notnull()]
+        ids = set(self.df.row_id.tolist())
+        df_refs = self.df[self.df.ref_id.notnull()]
         refs = dict(zip(df_refs.row_id, df_refs.ref_id))
         invalid = set()
         for n in range(5):
@@ -281,14 +303,13 @@ class DataTable:
         log.info('[%s] %d out of %d references were invalid', self.entity_type, len(invalid), len(refs))
 
         # Remove all invalid rows
-        rows_before = df.shape[0]
-        df = df[~df.row_id.isin(list(invalid))]
-        rows_after = df.shape[0]
+        rows_before = self.df.shape[0]
+        self.df = self.df[~self.df.row_id.isin(list(invalid))]
+        rows_after = self.df.shape[0]
         if rows_before == rows_after:
             log.info('[%s] Validated dataframe', self.entity_type)
         else:
             log.info('[%s] Validated dataframe. Rows reduced from %d to %d', self.entity_type, rows_before, rows_after)
-        return df
 
     def normalize_row(self, row):
         """
@@ -333,21 +354,8 @@ class DataTable:
 
         return True
 
-    def refers_to(self, row: DataRow) -> Optional[DataRow]:
+    def refers_to(self, row: DataRow) -> Optional[str]:
         return self.references.get(row.bibsent_id)
-
-    def make_row(self, values: namedtuple) -> DataRow:
-        return DataRow(values, self.entity_type)
-
-    def get_row(self, row_id: str) -> DataRow:
-        return self.make_row(self.df.loc[str(row_id)])
-
-    def rows(self) -> Generator[DataRow]:
-        """
-        DataRow generator
-        """
-        for row in self.df.itertuples():  # Note: itertuples is *much* faster than iterrows! Cut loading time from 28s to 4s
-            yield self.make_row(row)
 
     def fast_search(self, value: str) -> Generator[DataRow]:
 
@@ -361,13 +369,8 @@ class DataTable:
         for res in results.itertuples():
             yield self.make_row(res)
 
-    def search(self, value: str) -> Generator[DataRow]:
-        results = self.df[self.df.apply(lambda row: row.str.contains(value, case=False).any(), axis=1)]
-        for res in results.itertuples():
-            yield self.make_row(res)
 
-
-class TopicTable(DataTable):
+class TopicTable(PromusAuthorityTable):
     entity_type = 'topical'
     table_name = 'AuthorityTopic'
     id_field = 'AuthID'
@@ -415,7 +418,7 @@ class TopicTable(DataTable):
     }
 
 
-class GeographicTable(DataTable):
+class GeographicTable(PromusAuthorityTable):
     entity_type = 'geographic'
     table_name = 'AuthorityGeographic'
     id_field = 'TopicID'
@@ -458,7 +461,7 @@ class GeographicTable(DataTable):
     }
 
 
-class GenreTable(DataTable):
+class GenreTable(PromusAuthorityTable):
     entity_type = 'genre'
     table_name = 'AuthorityGenre'
     id_field = 'TopicID'
@@ -508,7 +511,7 @@ class GenreTable(DataTable):
             'field_codes': ', '.join(["'%s'" % field_code for field_code in field_codes]),
         }
 
-class CorporationTable(DataTable):
+class CorporationTable(PromusAuthorityTable):
     entity_type = 'corporation'
     table_name = 'AuthorityCorp'
     id_field = 'CorpID'
@@ -571,7 +574,7 @@ class CorporationTable(DataTable):
     }
 
 
-class PersonTable(DataTable):
+class PersonTable(PromusAuthorityTable):
     entity_type = 'person'
     table_name = 'AuthorityPerson'
     id_field = 'PersonId'
@@ -639,3 +642,33 @@ class PersonTable(DataTable):
         'Nametype': 'name_type',   # ?
     }
 
+class NationalityTable(PromusTable):
+    vocabulary_code = 'bs-nasj'
+    entity_type = 'nationality'
+    table_name = 'EnumCountries'
+    id_field = 'CountryID'
+    index_column = 'label_short'
+    display_column = 'label'
+
+    columns = {
+        'CountryID': 'row_id',
+        'CountryName': 'label',
+        'CountryShortName': 'label_short',
+        'CountryName2': 'country_name',
+        'CountryDescription': 'description',
+        'ISO_3166_Alpha_2': 'iso_3166_2_code',
+        'ISO_3166_Alpha_3': 'iso_3166_3_code',
+        'ISO_3166_Numeric': 'iso_3166_numeric',
+        'Marc21_Name': 'marc21_code',
+        'NotInUse': 'not_in_use',
+        'BSSpecific': 'bs_specific',  # not in use
+    }
+
+    def get_select_query(self) -> str:
+        return 'SELECT * FROM dbo.%s WHERE NotInUse=0' % self.table_name
+
+    def short_name_dict(self) -> dict:
+        return {
+            row.label_short: row.iso_3166_2_code
+            for row in self.rows()
+        }

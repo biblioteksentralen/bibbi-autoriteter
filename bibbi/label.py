@@ -4,10 +4,10 @@ from .constants import SUB_DELIM, TYPE_CORPORATION, QUA_DELIM, TYPE_GEOGRAPHIC, 
 from .util import LanguageMap
 
 if TYPE_CHECKING:
-    from .repository import DataRow
+    from .promus_service import DataRow
 
 
-class LabelService:
+class LabelFactory:
     """
     A service that can format labels in different ways.
     """
@@ -60,7 +60,7 @@ class LabelService:
 
         return self.get_label_and_detail(row)
 
-    def get_label(self, row: DataRow) -> LanguageMap:
+    def make(self, row: DataRow) -> LanguageMap:
 
         label = self.get_base_label(row)
 

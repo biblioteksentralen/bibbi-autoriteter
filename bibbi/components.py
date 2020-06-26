@@ -13,9 +13,9 @@ from .constants import TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_CORPORATION, TYPE_PER
     TYPE_CORPORATION_SUBJECT
 
 if TYPE_CHECKING:
-    from .entities import Entities
-    from .entities import Entity
-    from .lookup import LookupService
+    from .entity_service import ConceptSchemes
+    from .entity_service import Entity
+    from .label_index import LookupService
 
 log = logging.getLogger(__name__)
 
@@ -24,9 +24,9 @@ class Components:
     # Class for extracting components from precoordinated subject chains,
     # assign UUIDs to not-yet-seen components and persist these to disk.
 
-    def __init__(self, entities: Entities, lookup: LookupService):
+    def __init__(self, schemes: ConceptSchemes, lookup: LookupService):
         self.labels = LabelService()
-        self.entities = entities
+        self.schemes = schemes
         self.lookup = lookup
 
     def find_component(self, entity: Entity, label: str, source_type: str) -> Optional[dict]:

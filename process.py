@@ -2,13 +2,15 @@
 import logging.config
 import psutil
 import os
+import bonobo
 
 from dotenv import load_dotenv
 
 from bibbi.components import Components
-from bibbi.lookup import LookupService
-from bibbi.repository import TopicTable, GeographicTable, GenreTable, CorporationTable, PersonTable, Repository
-from bibbi.entities import Entities
+from bibbi.label_index import LookupService
+from bibbi.promus_service import TopicTable, GeographicTable, GenreTable, CorporationTable, PersonTable, \
+    NationalityTable, Repository
+from bibbi.entity_service import ConceptSchemes, ConceptScheme, BibbiEntity, BsNasjEntity
 from bibbi.serializers.rdf import RdfSerializers
 
 # gnd: / gndo:
@@ -18,7 +20,7 @@ from bibbi.serializers.rdf import RdfSerializers
 
 config = {
     'destination_dir': 'out/',
-    'load_from_cache': True,
+    'load_from_cache': False,
     'conversions': [
         {
             'name': 'bibbi',
@@ -27,76 +29,100 @@ config = {
             'label_transforms': False,
             'component_extraction': False,
 
-            'rdf': {
-                'graph': {
-                    'concept_scheme': 'http://id.bibbi.dev/bibbi/',
-                    'entity_ns': 'http://id.bibbi.dev/bibbi/',
-                    'group_ns': 'http://id.bibbi.dev/bibbi/group/',
+            'rdf': [
+                {
+                    'graph': {
+                        'concept_scheme': 'http://id.bibbi.dev/bs-nasj/',
+                        'entity_ns': 'http://id.bibbi.dev/bs-nasj/',
+                        'group_ns': 'http://id.bibbi.dev/bs-nasj/group/',
+                    },
+                    'includes': [
+                        'src/bs-nasj.scheme.ttl',
+                    ],
+                    'variants': [
+                        {
+                            'type': 'entities',
+                            'filters': [
+                                'source_type:country',
+                            ],
+                            'products': [{
+                                'filename': 'bs-nasj.nt',
+                                'format': 'ntriples',
+                            }]
+                        },
+                    ]
                 },
-                'includes': [
-                    'src/bs.ttl',
-                    'src/bibbi.scheme.ttl',
-                ],
-                'variants': [
-                    {
-                        'type': 'entities+mappings',
-                        'filters': [
-                            'source_type:genre',
-                        ],
-                        'products': [{
-                            'filename': 'bibbi-genre.nt',
-                            'format': 'ntriples',
-                        }]
+                {
+                    'graph': {
+                        'concept_scheme': 'http://id.bibbi.dev/bibbi/',
+                        'entity_ns': 'http://id.bibbi.dev/bibbi/',
+                        'group_ns': 'http://id.bibbi.dev/bibbi/group/',
                     },
-                    {
-                        'type': 'entities+mappings',
-                        'filters': [
-                            'source_type:topical',
-                        ],
-                        'products': [{
-                            'filename': 'bibbi-topical.nt',
-                            'format': 'ntriples',
-                        }]
-                    },
-                    {
-                        'type': 'entities+mappings',
-                        'filters': [
-                            'source_type:geographic',
-                        ],
-                        'products': [{
-                            'filename': 'bibbi-geographic.nt',
-                            'format': 'ntriples',
-                        }]
-                    },
-                    {
-                        'type': 'entities+mappings',
-                        'filters': [
-                            'source_type:person',
-                        ],
-                        'products': [{
-                            'filename': 'bibbi-person.nt',
-                            'format': 'ntriples',
-                        }]
-                    },
-                    {
-                        'type': 'entities+mappings',
-                        'filters': [
-                            'source_type:corporation',
-                        ],
-                        'products': [{
-                            'filename': 'bibbi-corporation.nt',
-                            'format': 'ntriples',
-                        }]
-                    },
-                    {
-                        'type': 'reverse_mappings',
-                        'products': [{
-                            'filename': 'webdewey-bibbi-mappings.nt',
-                            'format': 'ntriples',
-                        }]
-                    },
-                ],
-            }
+                    'includes': [
+                        'src/bs.ttl',
+                        'src/bibbi.scheme.ttl',
+                    ],
+                    'variants': [
+                        {
+                            'type': 'entities+mappings',
+                            'filters': [
+                                'source_type:genre',
+                            ],
+                            'products': [{
+                                'filename': 'bibbi-genre.nt',
+                                'format': 'ntriples',
+                            }]
+                        },
+                        {
+                            'type': 'entities+mappings',
+                            'filters': [
+                                'source_type:topical',
+                            ],
+                            'products': [{
+                                'filename': 'bibbi-topical.nt',
+                                'format': 'ntriples',
+                            }]
+                        },
+                        {
+                            'type': 'entities+mappings',
+                            'filters': [
+                                'source_type:geographic',
+                            ],
+                            'products': [{
+                                'filename': 'bibbi-geographic.nt',
+                                'format': 'ntriples',
+                            }]
+                        },
+                        {
+                            'type': 'entities+mappings',
+                            'filters': [
+                                'source_type:person',
+                            ],
+                            'products': [{
+                                'filename': 'bibbi-person.nt',
+                                'format': 'ntriples',
+                            }]
+                        },
+                        {
+                            'type': 'entities+mappings',
+                            'filters': [
+                                'source_type:corporation',
+                            ],
+                            'products': [{
+                                'filename': 'bibbi-corporation.nt',
+                                'format': 'ntriples',
+                            }]
+                        },
+                        {
+                            'type': 'reverse_mappings',
+                            'products': [{
+                                'filename': 'webdewey-bibbi-mappings.nt',
+                                'format': 'ntriples',
+                            }]
+                        },
+                    ],
+                }
+            ]
         },
         # {
         #     'name': 'bibbi-ex2',
@@ -164,11 +190,12 @@ def main(config):
 
     # Load DataTables
     repo = Repository([
-        TopicTable,
-        GeographicTable,
-        GenreTable,
-        CorporationTable,
-        PersonTable,
+        # TopicTable,
+        # GeographicTable,
+        # GenreTable,
+        # CorporationTable,
+        # PersonTable,
+        NationalityTable,
     ])
     repo.load(not config['load_from_cache'])
 
@@ -179,11 +206,16 @@ def main(config):
 
         log.info('===== Build entities: %s =====', conv_cfg['name'])
 
-        entities = Entities()
-        entities.load(repo)
+        nationality_map = []
+
+        schemes = ConceptSchemes({
+            'bibbi': ConceptScheme(BibbiEntity),
+            'bs-nasj': ConceptScheme(BsNasjEntity),
+        })
+        schemes.load(repo)
 
         lookup = LookupService()
-        components = Components(entities, lookup)
+        components = Components(schemes, lookup)
         components.load()
 
         # return
@@ -191,11 +223,11 @@ def main(config):
         include_unused = True
 
         if include_unused is False:
-            before = len(entities)
-            entities = entities.filter(
+            before = len(schemes)
+            schemes = schemes.filter(
                 lambda entity: entity.items_as_entry > 0 or entity.items_as_subject > 0
             )
-            after = len(entities)
+            after = len(schemes)
             log.info('Removed %d unused entities' % (before - after))
 
         # ------------------------------------------------------------
@@ -203,7 +235,8 @@ def main(config):
 
         if 'rdf' in conv_cfg:
             log.info('===== Serialize: RDF =====')
-            RdfSerializers(conv_cfg['rdf']).serialize(entities, config['destination_dir'])
+            for conf in conv_cfg['rdf']:
+                RdfSerializers(conf).serialize(schemes, config['destination_dir'])
 
 
     # entities.to_excel_sheets()
