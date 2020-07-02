@@ -23,7 +23,9 @@ pydash = "^4.7.6"
 feather-format = "^0.4.1"
 skosify = {git = "https://github.com/NatLibFi/Skosify.git", rev = "master"}
 python-dotenv = "^0.13.0"
-bonobo = "^0.6.4"
+petl = "^1.5.0"
+dask = "^2.19.0"
+colorama = "^0.4.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.2"

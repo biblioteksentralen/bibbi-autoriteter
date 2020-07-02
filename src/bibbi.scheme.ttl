@@ -51,3 +51,7 @@ group:corporation a isothes:ConceptGroup, skos:Collection ;
 
 group:person a isothes:ConceptGroup, skos:Collection ;
   skos:prefLabel "Personer"@nb, "Personar"@nn, "Persons"@en .
+
+group:nasj a isothes:ConceptGroup, skos:Collection ;
+  skos:prefLabel "Nasjonaliteter"@nb, "Nasjonalitetar"@nb, "Nationalities"@en
+.

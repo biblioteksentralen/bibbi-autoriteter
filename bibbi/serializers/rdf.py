@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 import re
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Iterable, List
 
 import rdflib
 import os
@@ -13,10 +13,8 @@ import skosify
 from ..util import ensure_parent_dir_exists
 from ..constants import TYPE_PERSON, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION, \
     TYPE_TITLE, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_QUALIFIER, TYPE_COMPLEX, \
-    TYPE_TITLE_SUBJECT
-
-if TYPE_CHECKING:
-    from ..entity_service import Entity, ConceptSchemes, ConceptScheme
+    TYPE_TITLE_SUBJECT, TYPE_NATIONALITY, TYPE_DEMOGRAPHIC_GROUP
+from ..entity_service import Entity, BibbiEntity, Nationality
 
 log = logging.getLogger(__name__)
 
@@ -37,56 +35,32 @@ def initialize_filters(filters: list) -> dict:
     return out
 
 
-class RdfSerializers:
-
-    def __init__(self, config: dict):
-        self.serializers = []
-
-        typemap = {
-            'entities': RdfEntitySerializer,
-            'entities+mappings': RdfEntityAndMappingSerializer,
-            'forward_mappings': RdfMappingSerializer,
-            'reverse_mappings': RdfReverseMappingSerializer,
-        }
-
-        for variant in config['variants']:
-            extras = {k: v for k, v in variant.items() if k not in ['type']}
-            serializer_type = typemap[variant['type']]
-            serializer = serializer_type(graph_options=config['graph'],
-                                         includes=config.get('includes', []),
-                                         **extras)
-            self.serializers.append(serializer)
-
-    def serialize(self, schemes: ConceptSchemes, destination_dir: str):
-        for serializer in self.serializers:
-            log.info('Starting %s', type(serializer).__name__)
-            serializer.serialize(schemes, destination_dir)
-
-
 class RdfSerializer:
 
-    def __init__(self, graph_options, includes=[], filters=[], products=[]):
-        self.graph = Graph(**graph_options)
-        self.includes = includes
-        self.filters = initialize_filters(filters)
-        self.products = products
+    def __init__(self, graph=None):
+        self.graph = graph or Graph()
+        self.staged = []
+        self.concept_scheme = None
 
-    def filter(self, schemes: ConceptSchemes):
-        for filter_name, filter_fn in self.filters.items():
-            before = len(schemes)
-            schemes = schemes.filter(filter_fn)
-            after = len(schemes)
-            log.info('Filter "%s": %d -> %d entities', filter_name, before, after)
-        return schemes
+    def load(self, filename, format='turtle'):
+        self.graph.load(filename, format=format)
+        return self
 
-    def serialize(self, schemes: ConceptSchemes, destination_dir: str):
-        self.load_includes()
-        schemes = self.filter(schemes)
-        self.populate_graph(schemes)
-        log.info('Generated mappings graph with %d triples', len(self.graph))
-        self.store(destination_dir)
+    def set_concept_scheme(self, concept_scheme: str):
+        self.concept_scheme = URIRef(concept_scheme)
+        return self
 
-    def load_includes(self):
+    def add_entities(self, entities: Iterable[Entity]):
+        self.staged += list(entities)
+        return self
+
+    def serialize(self, target, format):
+        self.build_graph()
+        log.info('Built graph with %d triples', len(self.graph))
+        self.graph.serialize(target, format)
+        return self
+
+    def build_graph(self):
         pass
 
     def skosify(self):
@@ -95,24 +69,11 @@ class RdfSerializer:
         s1 = len(self.graph)
         log.info('Skosify: %d -> %d triples', s0, s1)
 
-    def store(self, destination_dir: str):
-        for product in self.products:
-            dest_path = os.path.join(destination_dir, product['filename'])
-            self.graph.serialize(dest_path, product['format'])
-            log.info('Wrote %s', dest_path)
-
-    def populate_graph(self, schemes: ConceptSchemes):
-        pass
-
 
 class RdfEntitySerializer(RdfSerializer):
 
-    def load_includes(self):
-        for filename in self.includes:
-            self.graph.load(filename, format='turtle')
-
-    def populate_graph(self, schemes: ConceptSchemes):
-        self.graph.add_entities(schemes)
+    def build_graph(self):
+        self.graph.add_entities(self.staged, self.concept_scheme)
         self.skosify()
 
         # if config['delete_unused']:
@@ -125,17 +86,17 @@ class RdfEntitySerializer(RdfSerializer):
 
 class RdfEntityAndMappingSerializer(RdfEntitySerializer):
 
-    def populate_graph(self, schemes: ConceptSchemes):
-        self.graph.add_entities(schemes)
-        self.graph.add_mappings(schemes)
+    def build_graph(self):
+        self.graph.add_entities(self.staged, self.concept_scheme)
+        self.graph.add_mappings(self.staged)
         self.skosify()
 
 
 class RdfMappingSerializer(RdfSerializer):
     reverse = False
 
-    def populate_graph(self, schemes: ConceptSchemes):
-        self.graph.add_mappings(schemes, reverse=self.reverse)
+    def build_graph(self):
+        self.graph.add_mappings(self.staged, reverse=self.reverse)
 
 
 class RdfReverseMappingSerializer(RdfMappingSerializer):
@@ -166,7 +127,7 @@ class Graph:
     def add_raw(self, s, p, o):
         self.graph.add((s, p, o))
 
-    def add_mappings(self, entities: Entities, reverse: bool = False):
+    def add_mappings(self, entities: Iterable[Entity], reverse: bool = False):
         for entity in entities:
             self.add_entity_mappings(entity, reverse)
 
@@ -186,48 +147,26 @@ class Graph:
             uri = URIRef('http://authority.bibsys.no/authority/rest/authorities/html/' + entity.noraf_id)
             self.add(entity, SKOS.exactMatch, uri)
 
-    def add_entities(self, entities: Entities):
+    def add_entities(self, entities: Iterable[Entity], concept_scheme: Optional[URIRef] = None):
         for entity in entities:
-            self.add_entity(entity)
+            self.add_entity(entity, concept_scheme)
 
-    def add_entity(self, entity: Entity):
+    def add_entity(self, entity: Entity, concept_scheme: Optional[URIRef] = None):
         types = {
-            TYPE_TOPICAL: {
-                'uri': ONTO.Topic,
-            },
-            TYPE_GEOGRAPHIC: {
-                'uri': ONTO.Place,
-            },
-            TYPE_GENRE: {
-                'uri': ONTO.FormGenre,
-            },
-            TYPE_CORPORATION: {
-                'uri': ONTO.Corporation,
-            },
-            TYPE_PERSON: {
-                'uri': ONTO.Person,
-            },
-            TYPE_CORPORATION_SUBJECT: {
-                'uri': ONTO.CorporationSubject,
-            },
-            TYPE_PERSON_SUBJECT: {
-                'uri': ONTO.PersonSubject,
-            },
-            TYPE_QUALIFIER: {
-                'uri': ONTO.Qualifier,
-            },
-            TYPE_COMPLEX: {
-                'uri': ONTO.Complex,
-            },
-            TYPE_LAW: {
-                'uri': ONTO.Law,
-            },
-            TYPE_TITLE: {
-                'uri': ONTO.Title,
-            },
-            TYPE_TITLE_SUBJECT: {
-                'uri': ONTO.TitleAsSubject,
-            },
+            TYPE_TOPICAL: ONTO.Topic,
+            TYPE_GEOGRAPHIC: ONTO.Place,
+            TYPE_GENRE: ONTO.FormGenre,
+            TYPE_CORPORATION: ONTO.Corporation,
+            TYPE_PERSON: ONTO.Person,
+            TYPE_CORPORATION_SUBJECT: ONTO.CorporationSubject,
+            TYPE_PERSON_SUBJECT: ONTO.PersonSubject,
+            TYPE_QUALIFIER: ONTO.Qualifier,
+            TYPE_COMPLEX: ONTO.Complex,
+            TYPE_LAW: ONTO.Law,
+            TYPE_TITLE: ONTO.Title,
+            TYPE_TITLE_SUBJECT: ONTO.TitleAsSubject,
+            TYPE_NATIONALITY: ONTO.Nationality,
+            TYPE_DEMOGRAPHIC_GROUP: ONTO.DemographicGroup,
         }
 
         # ------------------------------------------------------------
@@ -238,7 +177,7 @@ class Graph:
             print(entity.data)
             return
 
-        self.add(entity, RDF.type, types[entity.type]['uri'])
+        self.add(entity, RDF.type, types[entity.type])
 
         # self.graph.add((types[entity.type]['group'], SKOS.member, entity.uri()))
 
@@ -247,82 +186,97 @@ class Graph:
         else:
             self.add(entity, RDF.type, ONTO.Entity)
 
-        self.add(entity, SKOS.inScheme, entity.concept_scheme)
+        if concept_scheme is not None:
+            self.add(entity, SKOS.inScheme, concept_scheme)
 
         for lang, value in entity.pref_label.items():
             self.add(entity, SKOS.prefLabel, Literal(value, lang))
 
-        for label in entity.alt_label:
+        for label in entity.alt_labels:
             for lang, value in label.items():
                 self.add(entity, SKOS.altLabel, Literal(value, lang))
 
-        if entity.created is not None:
-            value = entity.created.strftime('%Y-%m-%dT%H:%M:%S')
-            self.add(entity, DCTERMS.created, Literal(value, datatype=XSD.dateTime))
+        if isinstance(entity, Nationality):
+            # TODO: How should we organize entity-specific formatters?
+            # As methods on the Entity classes?? Will that increase memory use? Not necessarily. TEST!
+            if entity.country_name is not None:
+                self.add(entity, ONTO.country, Literal(entity.country_name))
 
-        if entity.modified is not None:
-            value = entity.modified.strftime('%Y-%m-%dT%H:%M:%S')
-            self.add(entity, DCTERMS.modified, Literal(value, datatype=XSD.dateTime))
+        if isinstance(entity, BibbiEntity):
 
-        if entity.items_as_entry is not None:
-            self.add(entity, ONTO.itemsAsEntry, Literal(entity.items_as_entry, datatype=XSD.integer))
+            if entity.created is not None:
+                value = entity.created.strftime('%Y-%m-%dT%H:%M:%S')
+                self.add(entity, DCTERMS.created, Literal(value, datatype=XSD.dateTime))
 
-        if entity.items_as_subject is not None:
-            self.add(entity, ONTO.itemsAsSubject, Literal(entity.items_as_subject, datatype=XSD.integer))
+            if entity.modified is not None:
+                value = entity.modified.strftime('%Y-%m-%dT%H:%M:%S')
+                self.add(entity, DCTERMS.modified, Literal(value, datatype=XSD.dateTime))
 
-        if entity.noraf_id is not None:
-            self.add(entity, ONTO.noraf, Literal(entity.noraf_id))
+            if entity.items_as_entry is not None:
+                self.add(entity, ONTO.itemsAsEntry, Literal(entity.items_as_entry, datatype=XSD.integer))
 
-        if entity.nationality is not None:
-            self.add(entity, ONTO.nationality, Literal(entity.nationality))
+            if entity.items_as_subject is not None:
+                self.add(entity, ONTO.itemsAsSubject, Literal(entity.items_as_subject, datatype=XSD.integer))
 
-        if entity.date is not None:
-            dates = entity.date.split('-')
-            if entity.type == TYPE_PERSON:
-                if len(dates[0]):
-                    self.add(entity, ONTO.birthDate, Literal(dates[0]))
-                if len(dates) > 1 and len(dates[1]):
-                    self.add(entity, ONTO.deathDate, Literal(dates[1]))
+            if entity.noraf_id is not None:
+                self.add(entity, ONTO.noraf, Literal(entity.noraf_id))
 
-        # ------------------------------------------------------------
-        # Dewey
+            # if entity.nationality is not None:
+            #    self.add(entity, ONTO.nationality, Literal(entity.nationality))
 
-        if entity.ddk5_nr is not None:
-            self.add(entity, ONTO.ddk5, Literal(entity.ddk5_nr))
+            if entity.date is not None:
+                dates = entity.date.split('-')
+                if entity.type == TYPE_PERSON:
+                    if len(dates[0]):
+                        self.add(entity, ONTO.birthDate, Literal(dates[0]))
+                    if len(dates) > 1 and len(dates[1]):
+                        self.add(entity, ONTO.deathDate, Literal(dates[1]))
 
-        if entity.webdewey_nr is not None:
-            if entity.webdewey_approved == '1':
-                self.add(entity, ONTO.webdewey, Literal(entity.webdewey_nr))
-            else:
-                self.add(entity, ONTO.webdeweyDraft, Literal(entity.webdewey_nr))
+            # ------------------------------------------------------------
+            # Dewey
 
-        self.add_entity_mappings(entity)
+            if entity.ddk5_nr is not None:
+                self.add(entity, ONTO.ddk5, Literal(entity.ddk5_nr))
 
-        # ------------------------------------------------------------
-        # Relations
-        for broader_entity in entity.broader:
-            self.add(entity, SKOS.broader, broader_entity.uri())
+            if entity.webdewey_nr is not None:
+                if entity.webdewey_approved == '1':
+                    self.add(entity, ONTO.webdewey, Literal(entity.webdewey_nr))
+                else:
+                    self.add(entity, ONTO.webdeweyDraft, Literal(entity.webdewey_nr))
 
-        # ------------------------------------------------------------
-        # Misc
+            self.add_entity_mappings(entity)
 
-        if entity.qualifier is not None:
-            self.add(entity, ONTO.qualifier, Literal(entity.qualifier))
+            # ------------------------------------------------------------
+            # Relations
+            for broader_entity in entity.broader:
+                self.add(entity, SKOS.broader, broader_entity.uri())
 
-        if entity.detail is not None:
-            self.add(entity, ONTO.detail, Literal(entity.detail))
+            # ------------------------------------------------------------
+            # Misc
 
-        if entity.legislation is not None:
-            # Temporary solution. We should entify these!
-            self.add(entity, ONTO.legislation, Literal(entity.legislation['nb'], 'nb'))
-            self.add(entity, ONTO.legislation, Literal(entity.legislation['nn'], 'nn'))
+            if entity.qualifier is not None:
+                self.add(entity, ONTO.qualifier, Literal(entity.qualifier))
 
-        if entity.nationality:
-            for nationality in entity.nationality.split('-'):
-                self.add(entity, ONTO.nationality, URIRef('http://id.bibbi.dev/bs-nasj/' + nationality.rstrip('.')))
+            if entity.detail is not None:
+                self.add(entity, ONTO.detail, Literal(entity.detail))
 
-        for country_code in entity.get('country_codes', []):
-            self.add(entity, ONTO.countryCode, Literal(country_code))
+            if entity.work_title is not None:
+                self.add(entity, ONTO.workTitle, Literal(entity.work_title))
+
+            if entity.legislation is not None:
+                # Temporary solution. We should entify these!
+                self.add(entity, ONTO.legislation, Literal(entity.legislation.nb, 'nb'))
+                self.add(entity, ONTO.legislation, Literal(entity.legislation.nn, 'nn'))
+
+            if entity.type == TYPE_DEMOGRAPHIC_GROUP:
+                # Temporary solution, we should have groups on the entity instead.
+                self.add_raw(URIRef('http://id.bibbi.dev/bibbi/group/nasj'), SKOS.member, entity.uri())
+
+            for nationality in entity.nationality_entities:
+                self.add(entity, ONTO.nationality, nationality.uri())
+
+            if entity.country_code is not None:
+                self.add(entity, ONTO.countryCode, Literal(entity.country_code))
 
     def skosify(self):
         # Infer parent classes

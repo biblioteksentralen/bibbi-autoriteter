@@ -71,7 +71,6 @@ bs:Person a rdfs:Class , owl:Class ;
   schema:sameAs <https://www.wikidata.org/wiki/Q215627> ;
 .
 
-# schema:PersonSubject
 bs:PersonSubject a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   rdfs:label "Person som emne"@nb ,
@@ -90,12 +89,48 @@ bs:Corporation a rdfs:Class , owl:Class ;
   rdfs:comment "Corporation."@nb ;
 .
 
-bs:Qualifier a rdfs:Class , owl:Class ;
+bs:CorporationSubject a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
-  rdfs:label "Qualifier"@nb ,
-    "Qualifier"@nn ,
-    "Qualifier"@en ;
-  rdfs:comment "Qualifer"@en ;
+  rdfs:label "Korporasjon som emne"@nb ,
+    "Korporasjon som emne"@nn ,
+    "Corporation as subject"@en ;
+  rdfs:comment "En korporasjon som emne."@nb ;
+.
+
+bs:Title a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  # rdfs:subClassOf foaf:Organization ;
+  rdfs:label "Tittel"@nb ,
+    "Tittel"@nn ,
+    "Title"@en ;
+  rdfs:comment "A work title."@nb ;
+.
+
+bs:TitleSubject a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  # rdfs:subClassOf foaf:Organization ;
+  rdfs:label "Tittel som emne"@nb ,
+    "Tittel som emne"@nn ,
+    "Title as subject"@en ;
+  rdfs:comment "A work title as subject."@nb ;
+.
+
+bs:DemographicGroup a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf bs:Topic ;
+  rdfs:label "Demografisk gruppe"@nb ,
+    "Demografisk gruppe"@nn ,
+    "Demographic group"@en ;
+  rdfs:comment "Gruppering av personer basert på en felles karakteristikk, som nasjonalitet eller etnisitet."@nb ;
+.
+
+bs:Nationality a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
+  rdfs:label "Nasjonalitet"@nb ,
+    "Nasjonalitet"@nn ,
+    "Nationality"@en ;
+  rdfs:comment "Betegnelse som uttrykker tilhørighet enten til en nasjon eller til et folkeslag/etnisk gruppe."@nb ;
 .
 
 bs:Law a rdfs:Class , owl:Class ;
@@ -110,6 +145,14 @@ bs:Complex a rdfs:Class , owl:Class ;
   rdfs:label "Emnestreng"@nb ,
     "Emnestreng"@nn ,
     "Complex concept"@en ;
+.
+
+bs:Qualifier a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:label "Qualifier"@nb ,
+    "Qualifier"@nn ,
+    "Qualifier"@en ;
+  rdfs:comment "Qualifer"@en ;
 .
 
 bs:ddk5 a rdf:Property , owl:DatatypeProperty ;
@@ -166,18 +209,36 @@ bs:norafId a rdf:Property , owl:DatatypeProperty ;
 bs:nationality a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
-  rdfs:range rdfs:Literal ;
+  rdfs:range bs:Nationality ;
   rdfs:label "Nasjonalitet"@nb ,
     "Nationality"@en ;
-  rdfs:comment "Nationality of a person. (TODO: Link to entry in the 'bs-nasj' vocabularyh, once published)"@en ;
+  rdfs:comment "Nasjonalitet, enten land eller folkegruppe/etnisk gruppe."@nb ;
+.
+
+bs:countryCode a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Landskode"@nb ,
+    "Country code"@en ;
+  # rdfs:comment "Statsborgerskap eller annen sterk tilhørighet til et land."@en ;
+.
+
+bs:workTitle a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Verkstittel"@nb ,
+    "Work title"@en ;
+  rdfs:comment "Tittelen på verket som autoriteten beskriver."@en ;
 .
 
 bs:birthDate a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
   rdfs:range rdfs:Literal ;
-  rdfs:label "Fødselsdato"@nb ,
-    "Birth date"@en ;
+  rdfs:label "Født"@nb ,
+    "Birth"@en ;
   rdfs:comment "Birth year or date for a person."@en ;
 .
 
@@ -185,8 +246,8 @@ bs:deathDate a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
   rdfs:range rdfs:Literal ;
-  rdfs:label "Dødsdato"@nb ,
-    "Death date"@en ;
+  rdfs:label "Død"@nb ,
+    "Death"@en ;
   rdfs:comment "Death year or date for a person."@en ;
 .
 

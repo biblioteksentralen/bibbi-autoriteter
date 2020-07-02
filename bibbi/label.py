@@ -12,8 +12,10 @@ class LabelFactory:
     A service that can format labels in different ways.
     """
 
-    def __init__(self, transform: bool = False, include_subdivisions: bool = True,
-                 include_qualifier: bool = True):
+    def __init__(self, transform: bool = False,
+                 #include_subdivisions: bool = True,
+                 #include_qualifier: bool = True
+                 ):
         """
 
         :param transform: If set to true, a set of transformations will be carried out to create
@@ -21,14 +23,10 @@ class LabelFactory:
             - Geografiske termer og underavdelinger: "Norge - Oslo" → "Oslo (Norge)"
             - Verksanalytter reverseres: "Navn - Verk" → "Verk (Navn)"
             - "Organisasjon – Avdeling" → "Avdeling (Organisasjon)"
-
-        :param include_subdivisions:
-
-        :param include_qualifier:
         """
         self.transform = transform
-        self.include_subdivisions = include_subdivisions
-        self.include_qualifier = include_qualifier
+        #self.include_subdivisions = include_subdivisions
+        #self.include_qualifier = include_qualifier
 
     @staticmethod
     def get_label_and_detail(row: DataRow) -> LanguageMap:
@@ -42,14 +40,14 @@ class LabelFactory:
 
         return label
 
-    def get_base_label(self, row: DataRow) -> LanguageMap:
+    def get_base_label(self, row: DataRow, include_subdivisions: bool) -> LanguageMap:
         """
         Get the "$a ($q)" part of the label only
         """
 
         if row.type == TYPE_GEOGRAPHIC:
             # Geografiske emneord (655): $a og $z kombineres
-            return self.get_geographic_label(row)
+            return self.get_geographic_label(row, include_subdivisions)
 
         elif row.type == TYPE_PERSON:
             # Personer (X00): $a, $b, $t kombineres
@@ -60,16 +58,17 @@ class LabelFactory:
 
         return self.get_label_and_detail(row)
 
-    def make(self, row: DataRow) -> LanguageMap:
+    def make(self, row: DataRow, include_subdivisions: bool = True,
+             include_qualifier: bool = True) -> LanguageMap:
 
-        label = self.get_base_label(row)
+        label = self.get_base_label(row, include_subdivisions)
 
-        if self.include_subdivisions:
+        if include_subdivisions:
 
             # Geografisk underavdeling ($z)
             if row.type != TYPE_GEOGRAPHIC and row.has('sub_geo'):
                 label += SUB_DELIM
-                label += self.get_geographic_label(row)
+                label += self.get_geographic_label(row, include_subdivisions)
 
             # Generell underavdeling ($x)
             for subdivison in row.get_subdivisions('sub_topic'):
@@ -85,7 +84,7 @@ class LabelFactory:
                 label.nb += SUB_DELIM + work_title.nb
                 label.nn += SUB_DELIM + work_title.nn
 
-        if self.include_qualifier:
+        if include_qualifier:
             # Kolon-kvalifikator (Blir litt gæren av disse!)
             if qualifier := row.get_lang_map('qualifier'):
                 label.nb += QUA_DELIM + qualifier.nb
@@ -93,7 +92,7 @@ class LabelFactory:
 
         return label
 
-    def get_geographic_label(self, row: DataRow) -> LanguageMap:
+    def get_geographic_label(self, row: DataRow, include_subdivisions) -> LanguageMap:
         """
         Returns the geographic parts (655 $a and 6XX $z) of this subject heading
         combined into a single component, or None if there is no geographic part.
@@ -103,7 +102,7 @@ class LabelFactory:
         if row.type == TYPE_GEOGRAPHIC:
             parts.append(self.get_label_and_detail(row))
 
-        if self.include_subdivisions:
+        if include_subdivisions:
             for label in row.get_subdivisions('sub_geo'):
                 parts.append(label)
 

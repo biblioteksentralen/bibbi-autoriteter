@@ -4,12 +4,19 @@ import re
 import sys
 import os
 from collections import namedtuple
-from typing import Optional, Generator, List, Callable
+from dataclasses import fields, MISSING
+from typing import Optional, Generator, List, Callable, Dict
 
 import pandas as pd
 import feather
+from rdflib import Namespace, URIRef
 
-from .constants import TYPE_GEOGRAPHIC
+from bibbi.entity_service import BibbiEntity, Entity, Nationality
+
+from bibbi.label import LabelFactory
+
+from .constants import TYPE_GEOGRAPHIC, TYPE_COMPLEX, TYPE_PERSON, TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON_SUBJECT, \
+    TYPE_CORPORATION, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_DEMOGRAPHIC_GROUP
 from .db import Db
 from .util import trim, to_str, LanguageMap
 from .references import ReferenceMap
@@ -23,39 +30,32 @@ class PromusService:
         self.connection = connection
 
     def extract(self, table: PromusTable) -> PromusTable:
-        return table.load_from_db(self.connection)
+        """
+        Load rows for a given entity type into a DataFrame for further processing.
+        Skips invalid rows and adds document counts.
+        """
+        log.info('[%s] Retrieving records from database', table.entity_type)
+        with self.connection.cursor() as cursor:
+            cursor.execute(table.get_select_query())
+            columns = []
+            for column in cursor.description:
+                if column[0] not in table.columns:
+                    log.error('[%s] Encountered unknown column "%s" in "%s" table', table.entity_type, column[0],
+                              table.table_name)
+                    sys.exit(1)
+                columns.append(table.columns[column[0]])
 
-    # def get(self, table_type=None) -> List[PromusTable]:
-    #     if table_type is not None:
-    #         return [table for table in self.tables.values() if isinstance(table, table_type)]
-    #     return list(self.tables.values())
-    #
-    # def get_row(self, row_id: int) -> DataRow:
-    #     for table in self.get():
-    #         try:
-    #             return table.get_row(str(row_id))
-    #         except KeyError:
-    #             pass
-    #
-    # def fast_search(self, value):
-    #     n = 0
-    #     for table in self.get():
-    #         if hasattr(table, 'fast_search'):
-    #             for result in table.fast_search(value):
-    #                 n += 1
-    #                 yield result
-    #
-    #     log.info('%d results', n)
-    #
-    # def search(self, value):
-    #     n = 0
-    #     for table in self.get():
-    #         for result in table.search(value):
-    #             n += 1
-    #             yield result
-    #
-    #    log.info('%d results', n)
+            rows = []
+            for row in cursor:
+                row = [trim(to_str(c)) for c in row]
+                rows.append(row)
 
+        df = pd.DataFrame(rows, dtype='str', columns=columns)
+        df.set_index(table.index_column, drop=False, inplace=True)
+        log.info('[%s] Loaded %d x %d table', table.entity_type, df.shape[0], df.shape[1])
+        table.df = df
+        table.after_load_from_db(self.connection)
+        return table
 
 class DataRow:
     # Wrapper around a DataFrame row that adds domain specific methods for data extraction
@@ -148,6 +148,8 @@ class DataRow:
 
 class PromusTable:
     vocabulary_code = None
+    namespace = Namespace('#')
+    entity_class = Entity
     entity_type = None
     table_name = None
     columns: dict = {}
@@ -165,33 +167,6 @@ class PromusTable:
 
     def get_select_query(self) -> str:
         return 'SELECT * FROM dbo.%s' % self.table_name
-
-    def load_from_db(self, db):
-        """
-        Load rows for a given entity type into a DataFrame for further processing.
-        Skips invalid rows and adds document counts.
-        """
-        log.info('[%s] Retrieving records from database', self.entity_type)
-        with db.cursor() as cursor:
-            cursor.execute(self.get_select_query())
-            columns = []
-            for column in cursor.description:
-                if column[0] not in self.columns:
-                    log.error('[%s] Encountered unknown column "%s" in "%s" table', self.entity_type, column[0], self.table_name)
-                    sys.exit(1)
-                columns.append(self.columns[column[0]])
-
-            rows = []
-            for row in cursor:
-                row = [trim(to_str(c)) for c in row]
-                rows.append(row)
-                # break
-
-        self.df = pd.DataFrame(rows, dtype='str', columns=columns)
-        self.df.set_index(self.index_column, drop=False, inplace=True)
-        log.info('[%s] Loaded %d x %d table', self.entity_type, self.df.shape[0], self.df.shape[1])
-        self.after_load_from_db(db)
-        return self
 
     def after_load_from_db(self, db):
         return self
@@ -217,9 +192,31 @@ class PromusTable:
         for res in results.itertuples():
             yield self.make_row(res)
 
+    def get_entity_id(self, row):
+        return row[self.index_column]
+
+    def make_entities(self):
+        for row in self.rows():
+            kwargs = {
+                'id': self.get_entity_id(row),
+                'row': row,
+                'namespace': self.namespace,
+                'type': row.type,
+                'source_type': row.type,
+                'pref_label': LanguageMap(nb=row.label, nn=row.label),
+                'alt_labels': [],
+            }
+            for field in fields(self.entity_class):
+                if field.name not in kwargs and field.name in row and pd.notnull(row[field.name]):
+                    kwargs[field.name] = row[field.name]
+
+            yield self.entity_class(**kwargs)
+
 
 class PromusAuthorityTable(PromusTable):
     vocabulary_code = 'bibbi'
+    namespace = Namespace('http://id.bibbi.dev/bibbi/')
+    entity_class = BibbiEntity
 
     def __init__(self, df: Optional[pd.DataFrame] = None):
         super(PromusAuthorityTable, self).__init__(df)
@@ -274,6 +271,7 @@ class PromusAuthorityTable(PromusTable):
 
         self.validate_references()
         self.references.load(self)
+        return self
 
     def after_load_from_cache(self):
         self.references.load(self)
@@ -369,6 +367,82 @@ class PromusAuthorityTable(PromusTable):
         for res in results.itertuples():
             yield self.make_row(res)
 
+    def make_entities(self):
+        label_factory = LabelFactory()
+        tmp_map = {}
+        for row in self.rows():
+            if target_id := self.refers_to(row):
+                if target_id not in tmp_map:
+                    tmp_map[target_id] = [None, [row]]
+                else:
+                    tmp_map[target_id][1] += [row]
+            else:
+                target_id = self.get_entity_id(row)
+                if target_id not in tmp_map:
+                    tmp_map[target_id] = [row, []]
+                else:
+                    tmp_map[target_id][0] = row
+
+        for entity_id, values in tmp_map.items():
+            if values[0] is None:
+                log.warning('Ignoring entity without pref label: %s', entity_id)
+                continue
+            main_row: DataRow = values[0]
+            reference_rows: List[DataRow] = values[1]
+
+            pref_label =  label_factory.make(main_row)
+            alt_labels = [label_factory.make(value) for value in reference_rows]
+
+            if pref_label is None:
+                log.warning('Pref label is none: %s', entity_id)
+                continue
+
+            kwargs = {
+                'id': entity_id,
+                'namespace': self.namespace,
+                'row': main_row,
+                'type': main_row.type,
+                'source_type': main_row.type,
+                'pref_label': pref_label,
+                'alt_labels': alt_labels,
+            }
+
+            if not main_row.is_main_entry():
+                kwargs['type'] = TYPE_COMPLEX
+
+            if main_row.has('bs_nasj_id'):
+                kwargs['type'] = TYPE_DEMOGRAPHIC_GROUP
+
+            if main_row.has('felles_id') and main_row.get('felles_id') != main_row.get('bibsent_id'):
+                # Biautoriteter
+
+                if main_row.type == TYPE_PERSON:
+                    if main_row.has('work_title'):
+                        if main_row.get('field_code') == '600':
+                            kwargs['type'] = TYPE_TITLE_SUBJECT
+                        else:
+                            kwargs['type'] = TYPE_TITLE
+                    else:
+                        kwargs['type'] = TYPE_PERSON_SUBJECT
+
+                elif main_row.type == TYPE_CORPORATION:
+                    if main_row.has('work_title'):
+                        if main_row.law == '1':
+                            kwargs['type'] = TYPE_LAW
+                            kwargs['legislation'] = LanguageMap(nb=main_row.label, nn=main_row.label_nn)
+                            # OBS: Alle lovene har samme Felles_ID ! De er altså alle biautoriteter uten en hovedautoritet
+                        else:
+                            kwargs['type'] = TYPE_LAW
+                    else:
+                        kwargs['type'] = TYPE_CORPORATION_SUBJECT
+
+            for field in fields(self.entity_class):
+                if field.name not in kwargs:
+                    if field.name in main_row and pd.notnull(main_row[field.name]):
+                        kwargs[field.name] = main_row[field.name]
+                    # elif field.default is MISSING and field.default_factory is MISSING:
+                    #     kwargs[field.name] = None
+            yield self.entity_class(**kwargs)
 
 class TopicTable(PromusAuthorityTable):
     entity_type = 'topical'
@@ -414,8 +488,15 @@ class TopicTable(PromusAuthorityTable):
         'WebDeweyKun': 'webDeweyKun',
         'Bibsent_ID': 'bibsent_id',  # Identifikator for bruk i $0
         'Comment': 'comment',  # Intern note, bare brukt 4 ganger
-        'Forkortelse': 'forkortelse',  # Brukt 80 ganger
+        'Forkortelse': 'bs_nasj_id',  # Brukes kun for nasjonaliteter (I bruk på 80 rader).
+                                      # Fungerer som nøkkel for å koble med EnumCountries.CountryShortName
     }
+
+    def get_nationality_map(self) -> Dict[str, str]:
+        return {
+            row.bs_nasj_id: str(row.bibsent_id)
+            for row in self.df[self.df.bs_nasj_id.notnull()].itertuples()
+        }
 
 
 class GeographicTable(PromusAuthorityTable):
@@ -644,6 +725,8 @@ class PersonTable(PromusAuthorityTable):
 
 class NationalityTable(PromusTable):
     vocabulary_code = 'bs-nasj'
+    namespace = Namespace('http://id.bibbi.dev/bs-nasj/')
+    entity_class = Nationality
     entity_type = 'nationality'
     table_name = 'EnumCountries'
     id_field = 'CountryID'
@@ -667,8 +750,11 @@ class NationalityTable(PromusTable):
     def get_select_query(self) -> str:
         return 'SELECT * FROM dbo.%s WHERE NotInUse=0' % self.table_name
 
-    def short_name_dict(self) -> dict:
+    def get_entity_id(self, row):
+        return row[self.index_column].rstrip('.')
+
+    def get_map(self) -> Dict[str, Dict[str, str]]:
         return {
-            row.label_short: row.iso_3166_2_code
+            row.label_short: {'iso2': row.iso_3166_2_code}
             for row in self.rows()
         }

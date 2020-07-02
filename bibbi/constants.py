@@ -17,4 +17,7 @@ TYPE_TITLE = 'title'
 TYPE_PERSON_SUBJECT= 'personAsSubject'
 TYPE_CORPORATION_SUBJECT = 'corporationAsSubject'
 TYPE_TITLE_SUBJECT = 'titleAsSubject'
+TYPE_DEMOGRAPHIC_GROUP = 'demographicGroup'
 
+# Misc
+TYPE_NATIONALITY = 'nationality'

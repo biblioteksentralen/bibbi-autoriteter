@@ -1,6 +1,8 @@
 import os
 
 import bonobo
+from bonobo.constants import NOT_MODIFIED
+
 from bibbi.db import Db
 from bonobo.config import use
 from dotenv import load_dotenv
@@ -10,16 +12,17 @@ from bibbi.entity_service import ConceptSchemeCollection, BibbiEntity, BsNasjEnt
 from bibbi.promus_cache import PromusCache
 from bibbi.promus_service import PromusService, TopicTable, GeographicTable, GenreTable, CorporationTable, \
     PersonTable, NationalityTable, PromusTable
+from bibbi.serializers.rdf import RdfSerializers, RdfSerializer
 
 log = logging.getLogger(__name__)
 
 
 tables = [
     NationalityTable,
-    TopicTable,
-    GeographicTable,
+    # TopicTable,
+    # GeographicTable,
     GenreTable,
-    CorporationTable,
+    # CorporationTable,
     # PersonTable,
 ]
 
@@ -47,35 +50,45 @@ def load_cache(table: PromusTable, promus_cache: PromusCache):
 def transform_to_entities(table: PromusTable, concept_schemes: ConceptSchemeCollection):
     # We need to ensure that all references have been added to each entity,
     # before passing them on.
-    return concept_schemes.get(table).import_table(table)
+    if isinstance(table, NationalityTable):
+        concept_schemes.set_nationality_map(table.short_name_dict())
+
+    return concept_schemes.get(table=table).import_table(table)
 
 
 @use('concept_schemes')
 def collect_entities(concept_scheme, concept_schemes: ConceptSchemeCollection):
     if concept_schemes.tables_imported() == len(tables):
         log.info('DONE')
-        for entity in concept_schemes:
-            yield entity
+        for concept_scheme in concept_schemes:
+            for entity in concept_scheme:
+                yield entity
 
 
 @use('concept_schemes')
 def add_relations(entity: Entity, concept_schemes: ConceptSchemeCollection):
+    concept_schemes.get(entity=entity).add_relations(entity, concept_schemes.nationality_map)
     return entity
 
-# for scheme in self.schemes.values():
-#     scheme.remove_invalid_entries()
-#     log.info('Removed invalid entries')
-#
-#     scheme.add_to_lookup_table()
-#     log.info('Updated lookup table')
-#
-#     country_tables = repo.get(NationalityTable)
-#     scheme.generate_relations(country_table=country_tables[0])
-#     log.info('Generated relations')
 
-# ------------------------------------------------------------------------------------------------
+def remove_unused_entities(entity: Entity):
+    if not isinstance(entity, BibbiEntity):
+        return entity
+    if entity.items_as_entry > 0 or entity.items_as_subject > 0:
+        return entity
 
-def get_graph(use_cache: bool = False):
+
+class SerializeAsRdf:
+
+    def __init__(self, serializer):
+        self.serializer = serializer
+
+    def __call__(self, entity: Entity):
+        self.serializer.add(entity)
+        return NOT_MODIFIED
+
+
+def get_graph(use_cache: bool = False, remove_unused: bool = False, **kwargs):
     """
     This function builds the graph that needs to be executed.
 
@@ -92,23 +105,52 @@ def get_graph(use_cache: bool = False):
         _name='transform'
     )
 
-    # Extract chain
-    if use_cache:
-        graph.add_chain(
-            extract_from_cache,
-            _output='transform'
-        )
-    else:
-        graph.add_chain(
-            extract_from_db,
-            load_cache,
-            _output='transform'
-        )
+    # Load chain
+    # serializer = RdfSerializer(
+    #     graph=concept_schemes.get(code='bs-nasj').get_graph(),
+    #     includes=[
+    #         'src/bs-nasj.scheme.ttl',
+    #     ],
+    #     products=[{
+    #         'filename': 'bs-nasj.nt',
+    #         'format': 'ntriples',
+    #     }]
+    # )
+    # graph.add_chain(
+    #     SerializeAsRdf(serializer),
+    #     _input=None,
+    #     _name='serialize'
+    # )
+    #
+    # # Extract chain
+    # if use_cache:
+    #     graph.add_chain(
+    #         extract_from_cache,
+    #         _output='transform'
+    #     )
+    # else:
+    #     graph.add_chain(
+    #         extract_from_db,
+    #         load_cache,
+    #         _output='transform'
+    #     )
+    #
+    # if remove_unused:
+    #     remove_unused_entities_node = graph.add_node(
+    #         remove_unused_entities,
+    #         _input=add_relations
+    #     )
+    #
+    #     graph.get_cursor('transform') >> remove_unused_entities_node
+    #     graph.get_cursor(remove_unused_entities_node) >> 'serialize'
+    # else:
+    #     graph.get_cursor('transform') >> 'serialize'
+    #
 
     return graph
 
 
-def get_services(use_cache: bool = False):
+def get_services(use_cache: bool = False, **kwargs):
     """
     This function builds the services dictionary, which is a simple dict of names-to-implementation used
     by bonobo for runtime injection.
@@ -130,6 +172,7 @@ def get_services(use_cache: bool = False):
         'bibbi': ConceptScheme(BibbiEntity),
         'bs-nasj': ConceptScheme(BsNasjEntity),
     })
+
     return {
         'promus': promus,
         'promus_cache': promus_cache,
@@ -141,6 +184,7 @@ if __name__ == '__main__':
     load_dotenv()
     parser = bonobo.get_argument_parser()
     parser.add_argument('--use-cache', action='store_true', default=False)
+    parser.add_argument('--remove-unused', action='store_true', default=False)
     with bonobo.parse_args(parser) as options:
         bonobo.run(
             get_graph(**options),

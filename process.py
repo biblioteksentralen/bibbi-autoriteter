@@ -30,28 +30,7 @@ config = {
             'component_extraction': False,
 
             'rdf': [
-                {
-                    'graph': {
-                        'concept_scheme': 'http://id.bibbi.dev/bs-nasj/',
-                        'entity_ns': 'http://id.bibbi.dev/bs-nasj/',
-                        'group_ns': 'http://id.bibbi.dev/bs-nasj/group/',
-                    },
-                    'includes': [
-                        'src/bs-nasj.scheme.ttl',
-                    ],
-                    'variants': [
-                        {
-                            'type': 'entities',
-                            'filters': [
-                                'source_type:country',
-                            ],
-                            'products': [{
-                                'filename': 'bs-nasj.nt',
-                                'format': 'ntriples',
-                            }]
-                        },
-                    ]
-                },
+
                 {
                     'graph': {
                         'concept_scheme': 'http://id.bibbi.dev/bibbi/',
