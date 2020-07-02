@@ -11,7 +11,7 @@ import pandas as pd
 import feather
 from rdflib import Namespace, URIRef
 
-from bibbi.entity_service import BibbiEntity, Entity, Nationality
+from bibbi.entity_service import BibbiEntity, Entity, Nation
 
 from bibbi.label import LabelFactory
 
@@ -723,21 +723,21 @@ class PersonTable(PromusAuthorityTable):
         'Nametype': 'name_type',   # ?
     }
 
-class NationalityTable(PromusTable):
-    vocabulary_code = 'bs-nasj'
-    namespace = Namespace('http://id.bibbi.dev/bs-nasj/')
-    entity_class = Nationality
-    entity_type = 'nationality'
+class NationTable(PromusTable):
+    vocabulary_code = 'bs-nasj'  # @deprecated
+    namespace = Namespace('http://id.bibbi.dev/bs-nasj/')  # @deprecated
+    entity_class = Nation
+    entity_type = 'nation'
     table_name = 'EnumCountries'
     id_field = 'CountryID'
-    index_column = 'label_short'
+    index_column = 'abbreviation'
     display_column = 'label'
 
     columns = {
         'CountryID': 'row_id',
-        'CountryName': 'label',
-        'CountryShortName': 'label_short',
-        'CountryName2': 'country_name',
+        'CountryName': 'demonym',
+        'CountryShortName': 'abbreviation',
+        'CountryName2': 'label',  # Note: Only filled for countries
         'CountryDescription': 'description',
         'ISO_3166_Alpha_2': 'iso_3166_2_code',
         'ISO_3166_Alpha_3': 'iso_3166_3_code',
@@ -751,10 +751,4 @@ class NationalityTable(PromusTable):
         return 'SELECT * FROM dbo.%s WHERE NotInUse=0' % self.table_name
 
     def get_entity_id(self, row):
-        return row[self.index_column].rstrip('.')
-
-    def get_map(self) -> Dict[str, Dict[str, str]]:
-        return {
-            row.label_short: {'iso2': row.iso_3166_2_code}
-            for row in self.rows()
-        }
+        return row[self.index_column]

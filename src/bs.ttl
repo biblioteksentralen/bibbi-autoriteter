@@ -215,12 +215,20 @@ bs:nationality a rdf:Property , owl:DatatypeProperty ;
   rdfs:comment "Nasjonalitet, enten land eller folkegruppe/etnisk gruppe."@nb ;
 .
 
-bs:countryCode a rdf:Property , owl:DatatypeProperty ;
+bs:abbreviation a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
   rdfs:range rdfs:Literal ;
-  rdfs:label "Landskode"@nb ,
-    "Country code"@en ;
+  rdfs:label "BS-forkortelse"@nb , "BS-forkortelse"@nn , "BS abbreviation"@en ;
+  rdfs:comment "Forkortelse brukt i Biblioteksentralens MARC-poster"@nb ;
+.
+
+bs:country a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  # rdfs:range rdfs:Literal ;
+  rdfs:label "Land"@nb ,
+    "Country"@en ;
   # rdfs:comment "Statsborgerskap eller annen sterk tilhørighet til et land."@en ;
 .
 
@@ -250,4 +258,3 @@ bs:deathDate a rdf:Property , owl:DatatypeProperty ;
     "Death"@en ;
   rdfs:comment "Death year or date for a person."@en ;
 .
-

@@ -53,5 +53,6 @@ group:person a isothes:ConceptGroup, skos:Collection ;
   skos:prefLabel "Personer"@nb, "Personar"@nn, "Persons"@en .
 
 group:nasj a isothes:ConceptGroup, skos:Collection ;
-  skos:prefLabel "Nasjonaliteter"@nb, "Nasjonalitetar"@nb, "Nationalities"@en
+  skos:prefLabel "Nasjonaliteter"@nb, "Nasjonalitetar"@nb, "Nationalities"@en ;
+  dcterms:description "Demografiske grupper definert ved tilhørighet til land eller folkeslag/etnisk gruppe."
 .

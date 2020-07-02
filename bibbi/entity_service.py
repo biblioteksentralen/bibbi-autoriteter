@@ -29,10 +29,13 @@ class Entity:
 
 
 @dataclass
-class Nationality(Entity):
-    country_name: Optional[str] = None
+class Nation(Entity):
+    label: Optional[str] = None
+    demonym: Optional[str] = None
     iso_3166_2_code: Optional[str] = None
     marc21_code: Optional[str] = None
+    abbreviation: Optional[str] = None
+    description: Optional[str] = None
 
 
 @dataclass
@@ -55,7 +58,13 @@ class BibbiEntity(Entity):
     legislation: Optional[LanguageMap] = None
     broader: List[str] = field(default_factory=list)
     components: List[str] = field(default_factory=list)
+
     country_code: Optional[str] = None
+    country_name: Optional[str] = None
+    country: Optional[BibbiEntity] = None
+
+    marc_code: Optional[str] = None
+    scopeNote: Optional[str] = None
 
 
 class EntityIndex:
@@ -119,3 +128,4 @@ class EntityCollection:
             self.add(entity)
             n += 1
         log.info('Constructed %d entities from: %s', n, table.entity_type)
+

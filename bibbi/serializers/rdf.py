@@ -13,8 +13,8 @@ import skosify
 from ..util import ensure_parent_dir_exists
 from ..constants import TYPE_PERSON, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION, \
     TYPE_TITLE, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_QUALIFIER, TYPE_COMPLEX, \
-    TYPE_TITLE_SUBJECT, TYPE_NATIONALITY, TYPE_DEMOGRAPHIC_GROUP
-from ..entity_service import Entity, BibbiEntity, Nationality
+    TYPE_TITLE_SUBJECT, TYPE_NATION, TYPE_DEMOGRAPHIC_GROUP
+from ..entity_service import Entity, BibbiEntity, Nation
 
 log = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ class Graph:
             TYPE_LAW: ONTO.Law,
             TYPE_TITLE: ONTO.Title,
             TYPE_TITLE_SUBJECT: ONTO.TitleAsSubject,
-            TYPE_NATIONALITY: ONTO.Nationality,
+            # TYPE_NATION: ONTO.Nation,
             TYPE_DEMOGRAPHIC_GROUP: ONTO.DemographicGroup,
         }
 
@@ -196,11 +196,17 @@ class Graph:
             for lang, value in label.items():
                 self.add(entity, SKOS.altLabel, Literal(value, lang))
 
-        if isinstance(entity, Nationality):
-            # TODO: How should we organize entity-specific formatters?
-            # As methods on the Entity classes?? Will that increase memory use? Not necessarily. TEST!
-            if entity.country_name is not None:
-                self.add(entity, ONTO.country, Literal(entity.country_name))
+        # if isinstance(entity, Nationality):
+        #     # TODO: How should we organize entity-specific formatters?
+        #     # As methods on the Entity classes?? Will that increase memory use? Not necessarily. TEST!
+        #     if entity.country_name is not None:
+        #         self.add(entity, ONTO.country, Literal(entity.country_name))
+        #
+        #     if entity.label_short is not None:
+        #         self.add(entity, ONTO.abbreviation, entity.label_short)
+        #
+        #     if entity.marc21_code is not None:
+        #         self.add(entity, ONTO.marcCode, entity.marc21_code)
 
         if isinstance(entity, BibbiEntity):
 
@@ -276,7 +282,17 @@ class Graph:
                 self.add(entity, ONTO.nationality, nationality.uri())
 
             if entity.country_code is not None:
-                self.add(entity, ONTO.countryCode, Literal(entity.country_code))
+                self.add(entity, ONTO.country, Literal(entity.country_name, 'nb'))
+
+            if entity.bs_nasj_id is not None:
+                self.add(entity, ONTO.abbreviation, Literal(entity.bs_nasj_id))
+
+            if entity.marc_code is not None:
+                self.add(entity, ONTO.marcCode, Literal(entity.marc_code))
+
+            if entity.scopeNote is not None:
+                self.add(entity, SKOS.scopeNote, Literal(entity.scopeNote, 'nb'))
+
 
     def skosify(self):
         # Infer parent classes

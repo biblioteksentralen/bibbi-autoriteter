@@ -20,4 +20,4 @@ TYPE_TITLE_SUBJECT = 'titleAsSubject'
 TYPE_DEMOGRAPHIC_GROUP = 'demographicGroup'
 
 # Misc
-TYPE_NATIONALITY = 'nationality'
+TYPE_NATION = 'nation'
