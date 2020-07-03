@@ -215,20 +215,59 @@ bs:nationality a rdf:Property , owl:DatatypeProperty ;
   rdfs:comment "Nasjonalitet, enten land eller folkegruppe/etnisk gruppe."@nb ;
 .
 
+bs:iso3166 a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "ISO 3166-kode"@nb ,
+    "ISO 3166-kode"@nn,
+    "ISO 3166 code"@en ;
+  rdfs:comment "Tobokstavs standardkode for land og biland fra ISO 3166-1 alpha-2. Foreløpig ser det ikke ut som vi har brukt regionkoder fra ISO 3166-2."@nb ;
+.
+
+bs:marcCountry a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range <http://id.loc.gov/vocabulary/countries/MARC_Country> ;
+  rdfs:label "MARC-kode"@nb ,
+             "MARC-kode"@nn ,
+             "MARC code"@en ;
+  rdfs:comment "Oppføring i 'MARC List for Countries'."@nb ;
+.
+
 bs:abbreviation a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
   rdfs:range rdfs:Literal ;
   rdfs:label "BS-forkortelse"@nb , "BS-forkortelse"@nn , "BS abbreviation"@en ;
-  rdfs:comment "Forkortelse brukt i Biblioteksentralens MARC-poster"@nb ;
+  rdfs:comment "Forkortelse brukt i 386 $b (flere steder?) i Biblioteksentralens MARC-poster"@nb ;
 .
 
 bs:country a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
-  # rdfs:range rdfs:Literal ;
+  rdfs:range bs:AuthorityResource ;
   rdfs:label "Land"@nb ,
     "Country"@en ;
+  # rdfs:comment "Statsborgerskap eller annen sterk tilhørighet til et land."@en ;
+.
+
+bs:demographicGroup a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range bs:AuthorityResource ;
+  rdfs:label "Demografisk gruppe"@nb ,
+    "Demographic group"@en ;
+  # rdfs:comment "Statsborgerskap eller annen sterk tilhørighet til et land."@en ;
+.
+
+bs:demonym a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Demonym"@nb ,
+    "Demonym"@nn ,
+    "Demonym"@en ;
   # rdfs:comment "Statsborgerskap eller annen sterk tilhørighet til et land."@en ;
 .
 

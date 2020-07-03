@@ -281,14 +281,23 @@ class Graph:
             for nationality in entity.nationality_entities:
                 self.add(entity, ONTO.nationality, nationality.uri())
 
-            if entity.country_code is not None:
-                self.add(entity, ONTO.country, Literal(entity.country_name, 'nb'))
+            if entity.country is not None:
+                self.add(entity, ONTO.country, entity.country.uri())
+
+            if entity.demographicGroup is not None:
+                self.add(entity, ONTO.demographicGroup, entity.demographicGroup.uri())
 
             if entity.bs_nasj_id is not None:
                 self.add(entity, ONTO.abbreviation, Literal(entity.bs_nasj_id))
 
-            if entity.marc_code is not None:
-                self.add(entity, ONTO.marcCode, Literal(entity.marc_code))
+            if entity.demonym is not None:
+                self.add(entity, ONTO.demonym, Literal(entity.demonym))
+
+            if entity.iso3166_2_code is not None:
+                self.add(entity, ONTO.iso3166, Literal(entity.iso3166_2_code))
+
+            if entity.marc21_code is not None:
+                self.add(entity, ONTO.marcCountry, URIRef('http://id.loc.gov/vocabulary/countries/' + entity.marc21_code))
 
             if entity.scopeNote is not None:
                 self.add(entity, SKOS.scopeNote, Literal(entity.scopeNote, 'nb'))

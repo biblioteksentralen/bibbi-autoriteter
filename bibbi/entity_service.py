@@ -32,7 +32,7 @@ class Entity:
 class Nation(Entity):
     label: Optional[str] = None
     demonym: Optional[str] = None
-    iso_3166_2_code: Optional[str] = None
+    iso3166_2_code: Optional[str] = None
     marc21_code: Optional[str] = None
     abbreviation: Optional[str] = None
     description: Optional[str] = None
@@ -59,11 +59,16 @@ class BibbiEntity(Entity):
     broader: List[str] = field(default_factory=list)
     components: List[str] = field(default_factory=list)
 
-    country_code: Optional[str] = None
-    country_name: Optional[str] = None
+    # Type: DemographicGroup
     country: Optional[BibbiEntity] = None
+    demographicGroup: Optional[BibbiEntity] = None
+    country_name: Optional[str] = None  # Fallback when entity not found
 
-    marc_code: Optional[str] = None
+    # Type: Geographic
+    iso3166_2_code: Optional[str] = None
+    marc21_code: Optional[str] = None
+    demonym: Optional[str] = None
+
     scopeNote: Optional[str] = None
 
 
@@ -86,6 +91,17 @@ class EntityIndex:
         self.indices[idx][key].append(eid)
 
     def find(self, label: str, entity_type=None, source_type=None) -> list:
+        """
+        Find an entity, either by label + entity type, or label + source_type.
+
+        Args:
+            label: The entity's label
+            entity_type: The type of the
+            source_type: The source type, e.g.
+
+        Returns:
+
+        """
         label = label.lower()
         if entity_type is not None:
             return self.indices['label+entity_type'].get(label + '@' + entity_type) or []
@@ -112,13 +128,21 @@ class EntityCollection:
     def get(self, entity_id: str, default=None):
         return self._members.get(entity_id, default)
 
+    def find(self, **kwargs):
+        return [self.get(entity_id) for entity_id in self.index.find(**kwargs)]
+
+    def find_first(self, **kwargs) -> Optional[Entity]:
+        results = self.find(**kwargs)
+        return results[0] if len(results) else None
+
     # def filter(self, filter_fn) -> EntityCollection:
     #     return EntityCollection({k: v for k, v in self._members.items() if filter_fn(v)})
 
     def update_index(self):
         self.index = EntityIndex()
         for entity_id, entity in self._members.items():
-            self.index.add(entity.pref_label, entity)
+            if entity.pref_label.nb is not None:
+                self.index.add(entity.pref_label, entity)
             for alt_label in entity.alt_labels:
                 self.index.add(alt_label, entity)
 

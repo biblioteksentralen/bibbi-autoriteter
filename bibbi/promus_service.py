@@ -739,9 +739,9 @@ class NationTable(PromusTable):
         'CountryShortName': 'abbreviation',
         'CountryName2': 'label',  # Note: Only filled for countries
         'CountryDescription': 'description',
-        'ISO_3166_Alpha_2': 'iso_3166_2_code',
-        'ISO_3166_Alpha_3': 'iso_3166_3_code',
-        'ISO_3166_Numeric': 'iso_3166_numeric',
+        'ISO_3166_Alpha_2': 'iso3166_2_code',
+        'ISO_3166_Alpha_3': 'iso3166_3_code',
+        'ISO_3166_Numeric': 'iso3166_numeric',
         'Marc21_Name': 'marc21_code',
         'NotInUse': 'not_in_use',
         'BSSpecific': 'bs_specific',  # not in use
