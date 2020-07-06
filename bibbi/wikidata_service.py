@@ -1,6 +1,8 @@
 import logging
 from textwrap import dedent
 from typing import Dict, List
+from urllib.error import HTTPError
+from time import sleep
 
 from SPARQLWrapper import SPARQLWrapper2
 
@@ -8,6 +10,8 @@ log = logging.getLogger(__name__)
 
 
 class WikidataService:
+
+    max_retries = 5
 
     standardPrefixes = dedent("""
     PREFIX wd: <http://www.wikidata.org/entity/>
@@ -20,10 +24,28 @@ class WikidataService:
     PREFIX bd: <http://www.bigdata.com/rdf#>
     """)
 
-    def select(self, query: str):
+    def request(self, query: str):
         client = SPARQLWrapper2('https://query.wikidata.org/sparql')
         client.setQuery(self.standardPrefixes + query)
-        for result in client.query().bindings:
+        retry_no = 0
+        while True:
+            try:
+                return client.query()
+            except HTTPError as error:
+                retry_no += 1
+                if retry_no > self.max_retries:
+                    raise Exception('Max number of retries (%d) exhausted. Giving up.', self.max_retries)
+                if error.code == 429:
+                    log.warning('Rate Limiting encountered.')
+                    print(error.headers)
+                    if 'Retry-After' in error.headers:
+                        print(error.headers['Retry-After'])
+                        seconds_to_sleep = int(error.headers['Retry-After'])
+                        log.info('Sleeping for %d seconds', seconds_to_sleep)
+                        sleep(seconds_to_sleep)
+
+    def select(self, query: str):
+        for result in self.request(query).bindings:
             yield result
 
     def select_values(self, query: str):
