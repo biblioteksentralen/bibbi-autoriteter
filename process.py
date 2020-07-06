@@ -6,14 +6,17 @@ from functools import wraps
 from time import time
 from typing import Dict, List, Union, Callable, Optional
 
+from rdflib import URIRef
+
 from bibbi.wikidata_service import WikidataService
 
 from bibbi.label import LabelFactory
 
-from bibbi.serializers.rdf import RdfEntityAndMappingSerializer, RdfEntitySerializer, RdfReverseMappingSerializer
+from bibbi.serializers.rdf import RdfEntityAndMappingSerializer, RdfEntitySerializer, RdfReverseMappingSerializer, \
+    ConceptScheme
 
 from bibbi.constants import TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON, TYPE_PERSON_SUBJECT, TYPE_CORPORATION_SUBJECT, \
-    TYPE_DEMOGRAPHIC_GROUP, TYPE_GEOGRAPHIC
+    TYPE_DEMOGRAPHIC_GROUP, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_TOPICAL, TYPE_CORPORATION
 from dotenv import load_dotenv
 
 from bibbi.db import Db
@@ -244,12 +247,19 @@ def serialize_as_rdf(collections):
     #     .add_entities(collections['bs-nasj'], ) \
     #     .serialize('out/bs-nasj.nt', 'ntriples')
 
-    for source_type in ['genre', 'topical', 'geographic', 'person', 'corporation']:
+    last_modified = collections['bibbi'].get_last_modified()
+    bibbi = ConceptScheme(
+        URIRef('http://id.bibbi.dev/bibbi/'),
+        last_modified
+    )
+
+    for source_type in [TYPE_GENRE, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION]:
+        entities = collections['bibbi'].filter(lambda entity: entity.source_type == source_type)
         RdfEntityAndMappingSerializer() \
             .load('src/bs.ttl') \
             .load('src/bibbi.scheme.ttl') \
-            .set_concept_scheme('http://id.bibbi.dev/bibbi/') \
-            .add_entities([entity for entity in collections['bibbi'] if entity.source_type == source_type]) \
+            .set_concept_schemes([bibbi]) \
+            .add_entities(entities) \
             .serialize('out/bibbi-%s.nt' % source_type, 'ntriples')
 
     RdfReverseMappingSerializer() \

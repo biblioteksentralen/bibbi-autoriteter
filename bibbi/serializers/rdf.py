@@ -1,6 +1,8 @@
 from __future__ import annotations
 import logging
 import re
+from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Iterable, List
 
 import rdflib
@@ -35,19 +37,32 @@ def initialize_filters(filters: list) -> dict:
     return out
 
 
+@dataclass
+class ConceptScheme:
+    uri: URIRef
+    modified: datetime
+
+
 class RdfSerializer:
 
     def __init__(self, graph=None):
         self.graph = graph or Graph()
         self.staged = []
-        self.concept_scheme = None
+        self.concept_schemes: List[ConceptScheme] = []
 
     def load(self, filename, format='turtle'):
         self.graph.load(filename, format=format)
         return self
 
-    def set_concept_scheme(self, concept_scheme: str):
-        self.concept_scheme = URIRef(concept_scheme)
+    def set_concept_schemes(self, concept_schemes: List[ConceptScheme]):
+        self.concept_schemes = concept_schemes
+        for concept_scheme in concept_schemes:
+            self.graph.add_raw(
+                concept_scheme.uri,
+                DCTERMS.modified,
+                Literal(concept_scheme.modified.strftime('%Y-%m-%dT%H:%M:%S'), datatype=XSD.dateTime)
+            )
+
         return self
 
     def add_entities(self, entities: Iterable[Entity]):

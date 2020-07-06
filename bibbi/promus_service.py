@@ -60,11 +60,11 @@ class PromusService:
 class DataRow:
     # Wrapper around a DataFrame row that adds domain specific methods for data extraction
 
-    def __init__(self, data: namedtuple, row_type: str, index_column: str, display_value: str):
+    def __init__(self, data: namedtuple, row_type: str, index_column: str, display_column: str):
         self.data = data
         self.type = row_type
         self.index_column = index_column
-        self.display_value = display_value
+        self.display_column = display_column
 
     def __getattr__(self, key):
         return getattr(self.data, key)
@@ -78,7 +78,7 @@ class DataRow:
     def __repr__(self):
         return '<DataRow type="%s" id="%s" label="%s">' % (self.type,
                                                            getattr(self, self.index_column),
-                                                           getattr(self, self.display_value))
+                                                           getattr(self, self.display_column))
 
     def has(self, key):
         return key in self and not pd.isnull(getattr(self.data, key))

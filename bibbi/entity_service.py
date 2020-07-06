@@ -113,8 +113,8 @@ class EntityIndex:
 
 class EntityCollection:
 
-    def __init__(self, vocabulary_code):
-        self._members: Dict[str, Entity] = {}
+    def __init__(self, vocabulary_code, members=None):
+        self._members: Dict[str, Entity] = members or {}
         self.index = EntityIndex()
         self.vocabulary_code = vocabulary_code
 
@@ -137,8 +137,8 @@ class EntityCollection:
         results = self.find(**kwargs)
         return results[0] if len(results) else None
 
-    # def filter(self, filter_fn) -> EntityCollection:
-    #     return EntityCollection({k: v for k, v in self._members.items() if filter_fn(v)})
+    def filter(self, filter_fn) -> EntityCollection:
+        return EntityCollection(self.vocabulary_code, {k: v for k, v in self._members.items() if filter_fn(v)})
 
     def update_index(self):
         self.index = EntityIndex()
@@ -153,5 +153,13 @@ class EntityCollection:
         for entity in table.make_entities():
             self.add(entity)
             n += 1
-        log.info('Constructed %d entities from: %s', n, table.entity_type)
+        log.info('Constructed %d entities from: %s', n, table.type)
 
+    def get_last_modified(self):
+        last_modified = datetime(2000, 1, 1, 0, 0, 0)
+        for entity in self._members.values():
+            if isinstance(entity, BibbiEntity) and entity.modified is not None:
+                if entity.modified > last_modified:
+                    last_modified = entity.modified
+        log.info('Concept scheme (%d members) last modified: %s', len(self._members), last_modified.isoformat())
+        return last_modified
