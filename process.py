@@ -49,7 +49,7 @@ TableDict = Dict[str, PromusTable]
 @timing
 def extract_tables(promus_adapter: PromusInterface, tables: List[Callable]) -> TableDict:
     tables = [table() for table in tables]
-    return {table.entity_type: promus_adapter.extract(table) for table in tables}
+    return {table.type: promus_adapter.extract(table) for table in tables}
 
 
 @timing
@@ -197,7 +197,7 @@ def transform_entities(label_factory: LabelFactory,
     countries = collections['bs-nasj']
     bibbi = collections['bibbi']
 
-    nationality_bibbi_map = tables[TopicTable.entity_type].get_nationality_map()
+    nationality_bibbi_map = tables[TopicTable.type].get_nationality_map()
     nationality_bibbi_map = {
         nationality_code: collections['bibbi'].get(bibbi_item)
         for nationality_code, bibbi_item in nationality_bibbi_map.items()

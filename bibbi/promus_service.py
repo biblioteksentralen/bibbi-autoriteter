@@ -34,13 +34,13 @@ class PromusService:
         Load rows for a given entity type into a DataFrame for further processing.
         Skips invalid rows and adds document counts.
         """
-        log.info('[%s] Retrieving records from database', table.entity_type)
+        log.info('[%s] Retrieving records from database', table.type)
         with self.connection.cursor() as cursor:
             cursor.execute(table.get_select_query())
             columns = []
             for column in cursor.description:
                 if column[0] not in table.columns:
-                    log.error('[%s] Encountered unknown column "%s" in "%s" table', table.entity_type, column[0],
+                    log.error('[%s] Encountered unknown column "%s" in "%s" table', table.type, column[0],
                               table.table_name)
                     sys.exit(1)
                 columns.append(table.columns[column[0]])
@@ -52,7 +52,7 @@ class PromusService:
 
         df = pd.DataFrame(rows, dtype='str', columns=columns)
         df.set_index(table.index_column, drop=False, inplace=True)
-        log.info('[%s] Loaded %d x %d table', table.entity_type, df.shape[0], df.shape[1])
+        log.info('[%s] Loaded %d x %d table', table.type, df.shape[0], df.shape[1])
         table.df = df
         table.after_load_from_db(self.connection)
         return table
@@ -150,8 +150,8 @@ class PromusTable:
     vocabulary_code = None
     namespace = Namespace('#')
     entity_class = Entity
-    entity_type = None
-    table_name = None
+    type: str = None
+    table_name: str = None
     columns: dict = {}
 
     # Override these
@@ -175,7 +175,7 @@ class PromusTable:
         return self
 
     def make_row(self, values: namedtuple) -> DataRow:
-        return DataRow(values, self.entity_type, self.index_column, self.display_column)
+        return DataRow(values, self.type, self.index_column, self.display_column)
 
     def get_row(self, row_id: str) -> DataRow:
         return self.make_row(self.df.loc[str(row_id)])
@@ -256,7 +256,7 @@ class PromusAuthorityTable(PromusTable):
                 # Note: We cannot have NaN values in the item_column, or Pandas will convert the integer column to float
                 # since int does not support NaN
                 self.df[key] = pd.to_numeric(self.df[key], downcast='integer')  #.astype('int8')  # pd.to_numeric(item_count_df.item_count, downcast='integer')
-                log.info('[%s] Document counts (%s): %d', self.entity_type, key, self.df[key].sum())
+                log.info('[%s] Document counts (%s): %d', self.type, key, self.df[key].sum())
 
     def after_load_from_db(self, db):
         """
@@ -267,7 +267,7 @@ class PromusAuthorityTable(PromusTable):
         self.df = self.df[self.df.apply(self.normalize_row, axis=1)]
 
         self.add_document_counts(db)
-        log.info('[%s] Table extended to %d x %d', self.entity_type, self.df.shape[0], self.df.shape[1])
+        log.info('[%s] Table extended to %d x %d', self.type, self.df.shape[0], self.df.shape[1])
 
         self.validate_references()
         self.references.load(self)
@@ -288,7 +288,7 @@ class PromusAuthorityTable(PromusTable):
             # If A -> B and B -> NULL, the first pass will mark B as invalid
             # and the second pass will mark A as invalid.
             # We also mark self-references (A -> A)
-            log.info('[%s] Validating references: Pass %d', self.entity_type, n + 1)
+            log.info('[%s] Validating references: Pass %d', self.type, n + 1)
             n1 = len(invalid)
             for k, v in refs.items():
                 if k == v or v not in ids or v in invalid:
@@ -298,16 +298,16 @@ class PromusAuthorityTable(PromusTable):
             if n1 == n2:
                 break
 
-        log.info('[%s] %d out of %d references were invalid', self.entity_type, len(invalid), len(refs))
+        log.info('[%s] %d out of %d references were invalid', self.type, len(invalid), len(refs))
 
         # Remove all invalid rows
         rows_before = self.df.shape[0]
         self.df = self.df[~self.df.row_id.isin(list(invalid))]
         rows_after = self.df.shape[0]
         if rows_before == rows_after:
-            log.info('[%s] Validated dataframe', self.entity_type)
+            log.info('[%s] Validated dataframe', self.type)
         else:
-            log.info('[%s] Validated dataframe. Rows reduced from %d to %d', self.entity_type, rows_before, rows_after)
+            log.info('[%s] Validated dataframe. Rows reduced from %d to %d', self.type, rows_before, rows_after)
 
     def normalize_row(self, row):
         """
@@ -324,7 +324,7 @@ class PromusAuthorityTable(PromusTable):
                 row[key] = None
 
         if pd.isnull(row.row_id):
-            log.error('[%s] Row failed validation: id is NULL', self.entity_type)
+            log.error('[%s] Row failed validation: id is NULL', self.type)
             return False
 
         # if pd.notnull(row.referenceId) and pd.notnull(row.webDeweyNr):
@@ -339,13 +339,13 @@ class PromusAuthorityTable(PromusTable):
         # log.warning('Row %s: Both BibbiNr and ReferenceId are NULL', row.Id)
         # return False
         if pd.isnull(row.label):
-            log.error('[%s] Row %s failed validation: Title/Label is NULL', self.entity_type, row.row_id)
+            log.error('[%s] Row %s failed validation: Title/Label is NULL', self.type, row.row_id)
             return False
 
         # Validate
         if row.get('webdewey_approved') == '1' and row.webdewey_nr is not None and not re.match(r'^[0-9]{3}(/\.[0-9]+|\.[0-9]+(/?[0-9]+)?)?$', row.webdewey_nr):
             log.warning('Invalid approved WebDewey number [%s | %s | %s]\t"%s"',
-                        self.entity_type,
+                        self.type,
                         row.bibsent_id,
                         row.display_value,
                         row.webdewey_nr)
@@ -445,7 +445,7 @@ class PromusAuthorityTable(PromusTable):
             yield self.entity_class(**kwargs)
 
 class TopicTable(PromusAuthorityTable):
-    entity_type = 'topical'
+    type = 'topical'
     table_name = 'AuthorityTopic'
     id_field = 'AuthID'
     field_code = 'X50'
@@ -500,7 +500,7 @@ class TopicTable(PromusAuthorityTable):
 
 
 class GeographicTable(PromusAuthorityTable):
-    entity_type = 'geographic'
+    type = 'geographic'
     table_name = 'AuthorityGeographic'
     id_field = 'TopicID'
     field_code = 'X51'
@@ -543,7 +543,7 @@ class GeographicTable(PromusAuthorityTable):
 
 
 class GenreTable(PromusAuthorityTable):
-    entity_type = 'genre'
+    type = 'genre'
     table_name = 'AuthorityGenre'
     id_field = 'TopicID'
     field_code = 'X55'
@@ -593,7 +593,7 @@ class GenreTable(PromusAuthorityTable):
         }
 
 class CorporationTable(PromusAuthorityTable):
-    entity_type = 'corporation'
+    type = 'corporation'
     table_name = 'AuthorityCorp'
     id_field = 'CorpID'
     field_code = 'X10'
@@ -656,7 +656,7 @@ class CorporationTable(PromusAuthorityTable):
 
 
 class PersonTable(PromusAuthorityTable):
-    entity_type = 'person'
+    type = 'person'
     table_name = 'AuthorityPerson'
     id_field = 'PersonId'
     field_code = 'X00'
@@ -727,7 +727,7 @@ class NationTable(PromusTable):
     vocabulary_code = 'bs-nasj'  # @deprecated
     namespace = Namespace('http://id.bibbi.dev/bs-nasj/')  # @deprecated
     entity_class = Nation
-    entity_type = 'nation'
+    type = 'nation'
     table_name = 'EnumCountries'
     id_field = 'CountryID'
     index_column = 'abbreviation'
