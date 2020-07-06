@@ -76,8 +76,8 @@ class DataRow:
         return hasattr(self.data, key)
 
     def __repr__(self):
-        return '<DataRow type="%s" id="%s" label="%s">' % (getattr(self, self.index_column),
-                                                           self.type,
+        return '<DataRow type="%s" id="%s" label="%s">' % (self.type,
+                                                           getattr(self, self.index_column),
                                                            getattr(self, self.display_value))
 
     def has(self, key):

@@ -270,7 +270,8 @@ class Graph:
                 self.add(entity, ONTO.workTitle, Literal(entity.work_title))
 
             if entity.legislation is not None:
-                # Temporary solution. We should entify these!
+                # Using Literal is a temporary solution. Should replace with
+                # Country entities.
                 self.add(entity, ONTO.legislation, Literal(entity.legislation.nb, 'nb'))
                 self.add(entity, ONTO.legislation, Literal(entity.legislation.nn, 'nn'))
 
