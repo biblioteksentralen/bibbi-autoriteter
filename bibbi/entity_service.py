@@ -59,6 +59,8 @@ class BibbiEntity(Entity):
     broader: List[str] = field(default_factory=list)
     components: List[str] = field(default_factory=list)
 
+    exact_match: List[str] = field(default_factory=list)
+
     # Type: DemographicGroup
     country: Optional[BibbiEntity] = None
     demographicGroup: Optional[BibbiEntity] = None

@@ -254,8 +254,11 @@ class Graph:
 
             # ------------------------------------------------------------
             # Relations
-            for broader_entity in entity.broader:
-                self.add(entity, SKOS.broader, broader_entity.uri())
+            for other_entity in entity.broader:
+                self.add(entity, SKOS.broader, other_entity.uri())
+
+            for other_entity_uri in entity.exact_match:
+                self.add(entity, SKOS.exactMatch, URIRef(other_entity_uri))
 
             # ------------------------------------------------------------
             # Misc
@@ -296,6 +299,7 @@ class Graph:
 
             if entity.iso3166_2_code is not None:
                 self.add(entity, ONTO.iso3166, Literal(entity.iso3166_2_code))
+                self.add(entity, RDF.type, ONTO.Country)
 
             if entity.marc21_code is not None:
                 self.add(entity, ONTO.marcCountry, URIRef('http://id.loc.gov/vocabulary/countries/' + entity.marc21_code))

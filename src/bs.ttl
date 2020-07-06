@@ -52,6 +52,14 @@ bs:Place a rdfs:Class , owl:Class ;
   rdfs:comment "Geographic place or feature."@nb ;
 .
 
+bs:Country a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf bs:Place ;
+  rdfs:label "Land"@nb ,
+    "Land"@nn ,
+    "Country"@en ;
+.
+
 bs:GenreOrForm a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   rdfs:label "Form/sjanger"@nb ,
