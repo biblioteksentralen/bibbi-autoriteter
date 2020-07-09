@@ -16,7 +16,7 @@ from bibbi.entity_service import BibbiEntity, Entity, Nation
 from bibbi.label import LabelFactory
 
 from .constants import TYPE_GEOGRAPHIC, TYPE_COMPLEX, TYPE_PERSON, TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON_SUBJECT, \
-    TYPE_CORPORATION, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_DEMOGRAPHIC_GROUP
+    TYPE_CORPORATION, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON
 from .db import Db
 from .util import trim, to_str, LanguageMap
 from .references import ReferenceMap
@@ -412,6 +412,9 @@ class PromusAuthorityTable(PromusTable):
 
             if main_row.has('bs_nasj_id'):
                 kwargs['type'] = TYPE_DEMOGRAPHIC_GROUP
+
+            if main_row.get('detail') == 'fiktiv person':
+                kwargs['type'] = TYPE_FICTIVE_PERSON
 
             if main_row.has('felles_id') and main_row.get('felles_id') != main_row.get('bibsent_id'):
                 # Biautoriteter

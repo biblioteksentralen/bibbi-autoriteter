@@ -11,6 +11,7 @@ TYPE_GENRE = 'genre'
 TYPE_QUALIFIER = 'qualifier'
 
 # Derived types
+TYPE_FICTIVE_PERSON = 'fictivePerson'
 TYPE_COMPLEX = 'complexSubject'
 TYPE_LAW = 'law'
 TYPE_TITLE = 'title'

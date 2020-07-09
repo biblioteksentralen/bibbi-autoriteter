@@ -132,6 +132,15 @@ bs:DemographicGroup a rdfs:Class , owl:Class ;
   rdfs:comment "Gruppering av personer basert på en felles karakteristikk, som nasjonalitet eller etnisitet."@nb ;
 .
 
+bs:FictivePerson a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf bs:Topic ;
+  rdfs:label "Fiktiv person"@nb ,
+    "Fiktiv person"@nn ,
+    "Fictive person"@en ;
+  rdfs:comment "Rollefigur, oppdiktet person i en fortelling, film, videospill eller annet verk."@nb ;
+.
+
 bs:Nationality a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   rdfs:subClassOf skos:Concept ;
