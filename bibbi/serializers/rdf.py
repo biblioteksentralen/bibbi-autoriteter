@@ -88,7 +88,7 @@ class RdfSerializer:
 class RdfEntitySerializer(RdfSerializer):
 
     def build_graph(self):
-        self.graph.add_entities(self.staged, self.concept_scheme)
+        self.graph.add_entities(self.staged, self.concept_schemes)
         self.skosify()
 
         # if config['delete_unused']:
@@ -102,7 +102,7 @@ class RdfEntitySerializer(RdfSerializer):
 class RdfEntityAndMappingSerializer(RdfEntitySerializer):
 
     def build_graph(self):
-        self.graph.add_entities(self.staged, self.concept_scheme)
+        self.graph.add_entities(self.staged, self.concept_schemes)
         self.graph.add_mappings(self.staged)
         self.skosify()
 
@@ -162,11 +162,11 @@ class Graph:
             uri = URIRef('http://authority.bibsys.no/authority/rest/authorities/html/' + entity.noraf_id)
             self.add(entity, SKOS.exactMatch, uri)
 
-    def add_entities(self, entities: Iterable[Entity], concept_scheme: Optional[URIRef] = None):
+    def add_entities(self, entities: Iterable[Entity], concept_schemes: List[ConceptScheme]):
         for entity in entities:
-            self.add_entity(entity, concept_scheme)
+            self.add_entity(entity, concept_schemes)
 
-    def add_entity(self, entity: Entity, concept_scheme: Optional[URIRef] = None):
+    def add_entity(self, entity: Entity, concept_schemes: List[ConceptScheme]):
         types = {
             TYPE_TOPICAL: ONTO.Topic,
             TYPE_GEOGRAPHIC: ONTO.Place,
@@ -201,8 +201,8 @@ class Graph:
         else:
             self.add(entity, RDF.type, ONTO.Entity)
 
-        if concept_scheme is not None:
-            self.add(entity, SKOS.inScheme, concept_scheme)
+        for concept_scheme in concept_schemes:
+            self.add(entity, SKOS.inScheme, concept_scheme.uri)
 
         for lang, value in entity.pref_label.items():
             self.add(entity, SKOS.prefLabel, Literal(value, lang))

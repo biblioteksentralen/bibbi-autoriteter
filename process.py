@@ -248,17 +248,28 @@ def serialize_as_rdf(collections):
     #     .serialize('out/bs-nasj.nt', 'ntriples')
 
     last_modified = collections['bibbi'].get_last_modified()
-    bibbi = ConceptScheme(
+    bibbi_concept_scheme = ConceptScheme(
         URIRef('http://id.bibbi.dev/bibbi/'),
         last_modified
     )
+
+    concept_scheme_uris = {
+        TYPE_GENRE: URIRef('http://id.bibbi.dev/bibbi-sjanger-form/'),
+        TYPE_TOPICAL: URIRef('http://id.bibbi.dev/bibbi-emner/'),
+        TYPE_GEOGRAPHIC: URIRef('http://id.bibbi.dev/bibbi-geografisk/'),
+        TYPE_PERSON: URIRef('http://id.bibbi.dev/bibbi-personer/'),
+        TYPE_CORPORATION: URIRef('http://id.bibbi.dev/bibbi-korporasjoner/'),
+    }
 
     for source_type in [TYPE_GENRE, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION]:
         entities = collections['bibbi'].filter(lambda entity: entity.source_type == source_type)
         RdfEntityAndMappingSerializer() \
             .load('src/bs.ttl') \
             .load('src/bibbi.scheme.ttl') \
-            .set_concept_schemes([bibbi]) \
+            .set_concept_schemes([
+                bibbi_concept_scheme,
+                ConceptScheme(concept_scheme_uris[source_type], entities.get_last_modified())
+            ]) \
             .add_entities(entities) \
             .serialize('out/bibbi-%s.nt' % source_type, 'ntriples')
 
