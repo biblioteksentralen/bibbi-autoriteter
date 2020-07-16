@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 # namespaces: bibbi eller bibsent ?
 ISOTHES = Namespace('http://purl.org/iso25964/skos-thes#')
 ONTO = Namespace('http://schema.bibbi.dev/')
+SCHEMA = Namespace('https://schema.org/')
 
 
 def initialize_filters(filters: list) -> dict:
@@ -249,9 +250,9 @@ class Graph:
                 dates = entity.date.split('-')
                 if entity.type == TYPE_PERSON:
                     if len(dates[0]):
-                        self.add(entity, ONTO.birthDate, Literal(dates[0]))
+                        self.add(entity, SCHEMA.birthDate, Literal(dates[0]))
                     if len(dates) > 1 and len(dates[1]):
-                        self.add(entity, ONTO.deathDate, Literal(dates[1]))
+                        self.add(entity, SCHEMA.deathDate, Literal(dates[1]))
 
             # ------------------------------------------------------------
             # Dewey

@@ -297,20 +297,16 @@ bs:workTitle a rdf:Property , owl:DatatypeProperty ;
   rdfs:comment "Tittelen på verket som autoriteten beskriver."@en ;
 .
 
-bs:birthDate a rdf:Property , owl:DatatypeProperty ;
-  rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
-  rdfs:range rdfs:Literal ;
-  rdfs:label "Født"@nb ,
-    "Birth"@en ;
-  rdfs:comment "Birth year or date for a person."@en ;
+schema:birthDate a rdf:Property ;
+    rdfs:label "Born"@en ,
+                 "Født"@nb ,
+                 "Født"@nn ;
+  rdfs:comment "Date the person was born, either the year or the full date according to ISO 8601."@en ;
 .
 
-bs:deathDate a rdf:Property , owl:DatatypeProperty ;
-  rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
-  rdfs:range rdfs:Literal ;
-  rdfs:label "Død"@nb ,
-    "Death"@en ;
-  rdfs:comment "Death year or date for a person."@en ;
+schema:deathDate a rdf:Property ;
+    rdfs:label "Died"@en ,
+                 "Død"@nb ,
+                 "Død"@nn ;
+  rdfs:comment "Year or date the person died, either the year or the full date according to ISO 8601."@en ;
 .
