@@ -23,6 +23,7 @@ skosify = {git = "https://github.com/NatLibFi/Skosify.git", rev = "master"}
 python-dotenv = "^0.13.0"
 colorama = "^0.4.3"
 sparqlwrapper = "^1.8.5"
+humanize = "^2.5.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.2"

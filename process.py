@@ -2,11 +2,13 @@ import argparse
 import logging
 import os
 import sys
+from datetime import timedelta
 from functools import wraps
 from time import time
 from typing import Dict, List, Union, Callable, Optional
 
 from rdflib import URIRef
+import humanize
 
 from bibbi.wikidata_service import WikidataService
 
@@ -318,7 +320,20 @@ def run(services: dict, use_cache: bool, remove_unused: bool):
 
 
 def get_services(use_cache: bool):
+    max_cache_age = timedelta(days=14)
+
     promus_cache = PromusCache('cache')
+    promus_cache_age = promus_cache.age()
+    if promus_cache_age is None:
+        log.info('Promus cache does not exist')
+        use_cache = False
+    elif promus_cache_age > max_cache_age:
+        log.info('Promus cache age: %s', humanize.naturaldelta(promus_cache_age))
+        log.warning('Cache is too old. Will update it.')
+        use_cache = False
+    else:
+        log.info('Promus cache age: %s', humanize.naturaldelta(promus_cache_age))
+
     if use_cache:
         promus_adapter = promus_cache
     else:

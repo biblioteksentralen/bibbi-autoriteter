@@ -1,8 +1,13 @@
 from __future__ import annotations
+
+import time
+import datetime
 from pathlib import Path
 import logging
+from typing import Optional
+
 import feather
-from bibbi.promus_service import PromusTable
+from bibbi.promus_service import PromusTable, TopicTable
 
 log = logging.getLogger(__name__)
 
@@ -14,8 +19,14 @@ class PromusCache:
         if not self.path.exists():
             self.path.mkdir()
 
-    def filename(self, table: PromusTable):
-        return '%s/%s.feather' % (self.path, table.type)
+    def age(self) -> Optional[datetime.timedelta]:
+        cache_file = self.filename(TopicTable())
+        if not cache_file.exists():
+            return None
+        return datetime.timedelta(seconds=time.time() - cache_file.stat().st_mtime)
+
+    def filename(self, table: PromusTable) -> Path:
+        return Path('%s/%s.feather' % (self.path, table.type))
 
     def extract(self, table: PromusTable):
         df = feather.read_dataframe(self.filename(table))

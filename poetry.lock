@@ -74,6 +74,17 @@ version = "0.4.1"
 pyarrow = ">=0.4.0"
 
 [[package]]
+category = "main"
+description = "Python humanize utilities"
+name = "humanize"
+optional = false
+python-versions = ">=3.5"
+version = "2.5.0"
+
+[package.extras]
+tests = ["freezegun", "pytest", "pytest-cov"]
+
+[[package]]
 category = "dev"
 description = "IPython Kernel for Jupyter"
 name = "ipykernel"
@@ -513,6 +524,7 @@ rdflib = "*"
 reference = "d39126f2c3918d07ccb9ed9c471bd30c9830225d"
 type = "git"
 url = "https://github.com/NatLibFi/Skosify.git"
+
 [[package]]
 category = "main"
 description = "SPARQL Endpoint interface to Python"
@@ -560,7 +572,7 @@ python-versions = "*"
 version = "0.2.5"
 
 [metadata]
-content-hash = "1e123f6dc7153c55b917757ce3f8a18f331272a7eaa3ac87ffff10350c9a3fe2"
+content-hash = "2b0646a65100c235713fbea3401940d29dbf2a2c46463722cac3fa3ee843a5d7"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -593,6 +605,10 @@ et-xmlfile = [
 ]
 feather-format = [
     {file = "feather-format-0.4.1.tar.gz", hash = "sha256:45f67e3745d394d4f160ca6d636bbfd4f8b68d01199dc1649b6e487d3e878903"},
+]
+humanize = [
+    {file = "humanize-2.5.0-py3-none-any.whl", hash = "sha256:89062c6db8601693b7d223443d0d7529aa9577df43a1387ddd4b9c273abb4a51"},
+    {file = "humanize-2.5.0.tar.gz", hash = "sha256:8a68bd9bccb899fd9bfb1e6d96c1e84e4475551cc9a5b5bdbd69b9b1cfd19c80"},
 ]
 ipykernel = [
     {file = "ipykernel-5.3.0-py3-none-any.whl", hash = "sha256:a8362e3ae365023ca458effe93b026b8cdadc0b73ff3031472128dd8a2cf0289"},
