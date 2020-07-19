@@ -15,7 +15,7 @@ import skosify
 from ..util import ensure_parent_dir_exists
 from ..constants import TYPE_PERSON, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION, \
     TYPE_TITLE, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_QUALIFIER, TYPE_COMPLEX, \
-    TYPE_TITLE_SUBJECT, TYPE_NATION, TYPE_DEMOGRAPHIC_GROUP
+    TYPE_TITLE_SUBJECT, TYPE_NATION, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON
 from ..entity_service import Entity, BibbiEntity, Nation
 
 log = logging.getLogger(__name__)
@@ -183,6 +183,7 @@ class Graph:
             TYPE_TITLE_SUBJECT: ONTO.TitleAsSubject,
             # TYPE_NATION: ONTO.Nation,
             TYPE_DEMOGRAPHIC_GROUP: ONTO.DemographicGroup,
+            TYPE_FICTIVE_PERSON: ONTO.FictivePerson,
         }
 
         # ------------------------------------------------------------
@@ -190,7 +191,7 @@ class Graph:
 
         if entity.type not in types:
             log.warning('Skipping entity of unknown entity type: %s', entity.type)
-            print(entity.data)
+            print(entity)
             return
 
         self.add(entity, RDF.type, types[entity.type])
