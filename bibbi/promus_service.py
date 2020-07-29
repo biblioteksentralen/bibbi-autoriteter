@@ -5,7 +5,7 @@ import sys
 import os
 from collections import namedtuple
 from dataclasses import fields, MISSING
-from typing import Optional, Generator, List, Callable, Dict
+from typing import Optional, Generator, List, Dict
 
 import pandas as pd
 import feather
@@ -56,6 +56,7 @@ class PromusService:
         table.df = df
         table.after_load_from_db(self.connection)
         return table
+
 
 class DataRow:
     # Wrapper around a DataFrame row that adds domain specific methods for data extraction
@@ -174,8 +175,9 @@ class PromusTable:
     def after_load_from_cache(self):
         return self
 
-    def make_row(self, values: namedtuple) -> DataRow:
-        return DataRow(values, self.type, self.index_column, self.display_column)
+    @classmethod
+    def make_row(cls, values: namedtuple) -> DataRow:
+        return DataRow(values, cls.type, cls.index_column, cls.display_column)
 
     def get_row(self, row_id: str) -> DataRow:
         return self.make_row(self.df.loc[str(row_id)])
@@ -192,7 +194,7 @@ class PromusTable:
         for res in results.itertuples():
             yield self.make_row(res)
 
-    def get_entity_id(self, row):
+    def get_entity_id(self, row) -> str:
         return row[self.index_column]
 
     def make_entities(self):
@@ -367,85 +369,112 @@ class PromusAuthorityTable(PromusTable):
         for res in results.itertuples():
             yield self.make_row(res)
 
+    def _group_references(self) -> Dict[str, List[DataRow]]:
+        """
+        Group main entries and all references to each entry together, using a single for loop.
+        Returns the following structure:
+        {
+            "bibbi_id for main row": [main row, reference row 1, reference row 2, ...]
+        }
+        """
+        out = {}
+
+        for row in self.rows():
+            if bibbi_id := self.refers_to(row) is not None:
+                if bibbi_id not in out:
+                    out[bibbi_id] = [None, row]
+                else:
+                    out[bibbi_id] += [row]
+            else:
+                bibbi_id = self.get_entity_id(row)
+                if bibbi_id not in out:
+                    out[bibbi_id] = [row]
+                else:
+                    out[bibbi_id][0] = row
+        return out
+
+    def make_entity(self, label_factory: LabelFactory, main_row: DataRow, reference_rows: List[DataRow]) -> Optional[Entity]:
+        entity_id = main_row[self.index_column]
+        pref_label = label_factory.make(main_row)
+        alt_labels = [label_factory.make(value) for value in reference_rows]
+
+        if pref_label is None:
+            log.error('Preferred label is empty for Bibbi ID: %s', entity_id)
+            return
+
+        kwargs = {
+            'id': entity_id,
+            'namespace': self.namespace,
+            'row': main_row,
+            'type': main_row.type,
+            'source_type': main_row.type,
+            'pref_label': pref_label,
+            'alt_labels': alt_labels,
+        }
+
+        if not main_row.is_main_entry():
+            kwargs['type'] = TYPE_COMPLEX
+
+        if main_row.has('bs_nasj_id'):
+            kwargs['type'] = TYPE_DEMOGRAPHIC_GROUP
+
+        if main_row.get('detail') == 'fiktiv person':
+            kwargs['type'] = TYPE_FICTIVE_PERSON
+
+        # Simplify work title by joining together $t $i $p
+        work_title = ' : '.join([
+            main_row.get(x) for x in [
+                'work_title',
+                'music_scoring',
+                'music_nr',
+                'music_arr',
+                'work_title_part',
+            ] if main_row.has(x)
+        ])
+        kwargs['work_title'] = work_title if work_title != '' else None
+
+        if main_row.has('felles_id') and main_row.get('felles_id') != main_row.get('bibsent_id'):
+            # Biautoriteter
+
+            if main_row.type == TYPE_PERSON:
+                if main_row.has('work_title') or main_row.has('work_title_part'):
+                    if main_row.get('field_code') == '600':
+                        kwargs['type'] = TYPE_TITLE_SUBJECT
+                    else:
+                        kwargs['type'] = TYPE_TITLE
+                else:
+                    kwargs['type'] = TYPE_PERSON_SUBJECT
+
+            elif main_row.type == TYPE_CORPORATION:
+                if main_row.has('work_title'):
+                    if main_row.law == '1':
+                        kwargs['type'] = TYPE_LAW
+                        kwargs['legislation'] = LanguageMap(nb=main_row.label, nn=main_row.label_nn)
+                        # OBS: Alle lovene har samme Felles_ID ! De er altså alle biautoriteter uten en hovedautoritet
+                    else:
+                        kwargs['type'] = TYPE_LAW
+                else:
+                    kwargs['type'] = TYPE_CORPORATION_SUBJECT
+
+        for field in fields(self.entity_class):
+            if field.name not in kwargs:
+                if field.name in main_row and pd.notnull(main_row[field.name]):
+                    kwargs[field.name] = main_row[field.name]
+                # elif field.default is MISSING and field.default_factory is MISSING:
+                #     kwargs[field.name] = None
+        return self.entity_class(**kwargs)
+
     def make_entities(self):
         label_factory = LabelFactory()
-        tmp_map = {}
-        for row in self.rows():
-            if target_id := self.refers_to(row):
-                if target_id not in tmp_map:
-                    tmp_map[target_id] = [None, [row]]
-                else:
-                    tmp_map[target_id][1] += [row]
-            else:
-                target_id = self.get_entity_id(row)
-                if target_id not in tmp_map:
-                    tmp_map[target_id] = [row, []]
-                else:
-                    tmp_map[target_id][0] = row
-
-        for entity_id, values in tmp_map.items():
-            if values[0] is None:
+        grouped_rows = self._group_references()
+        for entity_id, row_group in grouped_rows.items():
+            if row_group[0] is None:
                 log.warning('Ignoring entity without pref label: %s', entity_id)
                 continue
-            main_row: DataRow = values[0]
-            reference_rows: List[DataRow] = values[1]
+            entity = self.make_entity(label_factory, row_group[0], row_group[1:])
+            if entity is not None:
+                yield entity
 
-            pref_label =  label_factory.make(main_row)
-            alt_labels = [label_factory.make(value) for value in reference_rows]
-
-            if pref_label is None:
-                log.warning('Pref label is none: %s', entity_id)
-                continue
-
-            kwargs = {
-                'id': entity_id,
-                'namespace': self.namespace,
-                'row': main_row,
-                'type': main_row.type,
-                'source_type': main_row.type,
-                'pref_label': pref_label,
-                'alt_labels': alt_labels,
-            }
-
-            if not main_row.is_main_entry():
-                kwargs['type'] = TYPE_COMPLEX
-
-            if main_row.has('bs_nasj_id'):
-                kwargs['type'] = TYPE_DEMOGRAPHIC_GROUP
-
-            if main_row.get('detail') == 'fiktiv person':
-                kwargs['type'] = TYPE_FICTIVE_PERSON
-
-            if main_row.has('felles_id') and main_row.get('felles_id') != main_row.get('bibsent_id'):
-                # Biautoriteter
-
-                if main_row.type == TYPE_PERSON:
-                    if main_row.has('work_title'):
-                        if main_row.get('field_code') == '600':
-                            kwargs['type'] = TYPE_TITLE_SUBJECT
-                        else:
-                            kwargs['type'] = TYPE_TITLE
-                    else:
-                        kwargs['type'] = TYPE_PERSON_SUBJECT
-
-                elif main_row.type == TYPE_CORPORATION:
-                    if main_row.has('work_title'):
-                        if main_row.law == '1':
-                            kwargs['type'] = TYPE_LAW
-                            kwargs['legislation'] = LanguageMap(nb=main_row.label, nn=main_row.label_nn)
-                            # OBS: Alle lovene har samme Felles_ID ! De er altså alle biautoriteter uten en hovedautoritet
-                        else:
-                            kwargs['type'] = TYPE_LAW
-                    else:
-                        kwargs['type'] = TYPE_CORPORATION_SUBJECT
-
-            for field in fields(self.entity_class):
-                if field.name not in kwargs:
-                    if field.name in main_row and pd.notnull(main_row[field.name]):
-                        kwargs[field.name] = main_row[field.name]
-                    # elif field.default is MISSING and field.default_factory is MISSING:
-                    #     kwargs[field.name] = None
-            yield self.entity_class(**kwargs)
 
 class TopicTable(PromusAuthorityTable):
     type = 'topical'
@@ -612,7 +641,6 @@ class CorporationTable(PromusAuthorityTable):
         'CorpDetail': 'detail',  # (Forklarende parentes)
         'CorpDetail_N': 'detail_nn',  #
         'SortingTitle': 'sorting_title',
-        'TopicTitle': 'work_title',  # $t Title of a work? Brukt om lover og musikkalbum
         'SortingSubTitle': 'sorting_subtitle',  #
         'UnderTopic': 'sub_topic',                 # Underinndeling ($x), med –
         'UnderTopic_N': 'sub_topic_nn',
@@ -621,10 +649,14 @@ class CorporationTable(PromusAuthorityTable):
         'DeweyNr': 'ddk5_nr',
         'TopicDetail': 'detail_topic',
         'TopicLang': 'topic_lang',  # (ikke i bruk, ser ut til å være generert)
-        'MusicNr': 'music_nr',
-        'MusicCast': 'music_cast',
-        'Arrangment': 'music_arr',
-        'ToneArt': 'music_key',
+
+        # Work title components
+        'TopicTitle': 'work_title',  # $t - Title of a work / Tittel for dokument som emne
+        'MusicCast': 'music_scoring',  # $m Besetning / "Medium of performance for music"
+        'MusicNr': 'music_nr',  # $i f.eks. "op 150, nr. 2"
+        'Arrangment': 'music_arr',  # $o "Arranged statement for music"
+        'Toneart': 'music_key',  # $r - "Key for music"
+
         'FieldCode': 'field_code',
         'Security_ID': 'security_id',
         'UserID': 'userid',
@@ -672,18 +704,21 @@ class PersonTable(PromusAuthorityTable):
         'PersonYear': 'date',  # $d Dates associated with name
         'PersonNation': 'nationality',
         'SortingTitle': 'sorting_title',
-        'MusicCast': 'music_cast',
-        'MusicNr': 'music_nr',
-        'Arrangment': 'music_arr',
-        'Toneart': 'music_key',
-        'TopicTitle': 'work_title', # $t - Title of a work / Tittel for dokument som emne
         'SortingSubTitle': 'sorting_subtitle',
         'UnderTopic': 'sub_topic',                 # Underinndeling ($x), med –
         'UnderTopic_N': 'sub_topic_nn',
         'Qualifier': 'qualifier',  # : kvalifikator ($0 i NORMARC)
         'Qualifier_N': 'qualifier_nn',  #
+
+        # Work title components
+        'TopicTitle': 'work_title', # $t - Title of a work / Tittel for dokument som emne
+        'MusicCast': 'music_scoring',  # $m Besetning / "Medium of performance for music"
+        'MusicNr': 'music_nr',  # $i f.eks. "op 150, nr. 2"
+        'Arrangment': 'music_arr',  # $o "Arranged statement for music"
+        'Toneart': 'music_key',  # $r - "Key for music"
         'UnderMainText': 'work_title_part',  # $p Name of part/section of a work / Tittel for del av verk
         'LanguageText': 'work_lang',  # $l Language of a work
+
         'DeweyNr': 'ddk5_nr',
         'TopicLang': 'topic_lang',  # (ikke i bruk, ser ut til å være generert)
         'IssnNr': 'issn_nr',  # Why?? Ikke i bruk
