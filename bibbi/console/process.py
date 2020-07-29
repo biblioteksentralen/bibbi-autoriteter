@@ -364,7 +364,3 @@ def main():
     configure_logging()
     services = get_services(options.use_cache)
     run(services, options.use_cache, options.remove_unused)
-
-
-if __name__ == '__main__':
-    main()
