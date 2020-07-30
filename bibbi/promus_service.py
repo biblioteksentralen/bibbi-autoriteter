@@ -77,9 +77,15 @@ class DataRow:
         return hasattr(self.data, key)
 
     def __repr__(self):
-        return '<DataRow type="%s" id="%s" label="%s">' % (self.type,
-                                                           getattr(self, self.index_column),
-                                                           getattr(self, self.display_column))
+        params = [
+            '%s="%s"' % (k, str(v))
+            for k, v in self.data._asdict().items()
+            if v is not None and k not in [self.index_column, self.display_column]
+        ]
+        return '<DataRow type="%s" id="%s" label="%s" %s>' % (self.type,
+                                                              getattr(self, self.index_column),
+                                                              getattr(self, self.display_column),
+                                                              ', '.join(params))
 
     def has(self, key):
         return key in self and not pd.isnull(getattr(self.data, key))
