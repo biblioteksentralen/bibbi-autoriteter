@@ -180,7 +180,7 @@ class Graph:
             TYPE_COMPLEX: ONTO.Complex,
             TYPE_LAW: ONTO.Law,
             TYPE_TITLE: ONTO.Title,
-            TYPE_TITLE_SUBJECT: ONTO.TitleAsSubject,
+            TYPE_TITLE_SUBJECT: ONTO.TitleSubject,
             # TYPE_NATION: ONTO.Nation,
             TYPE_DEMOGRAPHIC_GROUP: ONTO.DemographicGroup,
             TYPE_FICTIVE_PERSON: ONTO.FictivePerson,
