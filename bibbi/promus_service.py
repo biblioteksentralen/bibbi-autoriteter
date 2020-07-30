@@ -661,7 +661,7 @@ class CorporationTable(PromusAuthorityTable):
         'MusicCast': 'music_scoring',  # $m Besetning / "Medium of performance for music"
         'MusicNr': 'music_nr',  # $i f.eks. "op 150, nr. 2"
         'Arrangment': 'music_arr',  # $o "Arranged statement for music"
-        'Toneart': 'music_key',  # $r - "Key for music"
+        'ToneArt': 'music_key',  # $r - "Key for music"
 
         'FieldCode': 'field_code',
         'Security_ID': 'security_id',
