@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Optional, Iterable, List
 import rdflib
 import os
 from rdflib import Literal, Namespace, URIRef
-from rdflib.namespace import RDF, SKOS, DCTERMS, XSD
+from rdflib.namespace import RDF, SKOS, DCTERMS, XSD, OWL
 from otsrdflib import OrderedTurtleSerializer
 import skosify
 
@@ -195,6 +195,9 @@ class Graph:
             return
 
         self.add(entity, RDF.type, types[entity.type])
+
+        if isinstance(entity, BibbiEntity) and entity.approved == '0':
+            self.add(entity, OWL.deprecated, Literal(True))
 
         # self.graph.add((types[entity.type]['group'], SKOS.member, entity.uri()))
 

@@ -215,7 +215,10 @@ class PromusTable:
                 'alt_labels': [],
             }
             for field in fields(self.entity_class):
-                if field.name not in kwargs and field.name in row and pd.notnull(row[field.name]):
+                if field.name == 'approved' and field.name not in row:
+                    # Auto-approve form/genre terms that lack the 'approved' field
+                    kwargs['approved'] = '1'
+                elif field.name not in kwargs and field.name in row and pd.notnull(row[field.name]):
                     kwargs[field.name] = row[field.name]
 
             yield self.entity_class(**kwargs)
@@ -231,13 +234,13 @@ class PromusAuthorityTable(PromusTable):
         self.references = ReferenceMap()
 
     def get_select_query(self) -> str:
-        return 'SELECT * FROM dbo.%s WHERE Approved=1 AND Bibsent_ID IS NOT NULL' % self.table_name
+        return 'SELECT * FROM dbo.%s WHERE NotInUse=0 AND Bibsent_ID IS NOT NULL' % self.table_name
 
     def get_item_count_query(self, field_codes: list) -> str:
         return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
             LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
             LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.CurrentStatus = 1
-            WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
+            WHERE a.NotInUse = 0 AND a.Bibsent_ID IS NOT NULL
             GROUP BY a.Bibsent_ID
         """ % {
             'table': self.table_name,
@@ -609,12 +612,6 @@ class GenreTable(PromusAuthorityTable):
         'Comment': 'comment',  # Intern note, ikke i bruk
     }
 
-    def get_select_query(self) -> str:
-        """
-        The genre table does not have an Approved column.
-        """
-        return 'SELECT * FROM dbo.%s WHERE Bibsent_ID IS NOT NULL' % self.table_name
-
     def get_item_count_query(self, field_codes: list) -> str:
         """
         The genre table does not have an Approved column.
@@ -622,7 +619,7 @@ class GenreTable(PromusAuthorityTable):
         return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
             LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
             LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.CurrentStatus = 1
-            WHERE a.Bibsent_ID IS NOT NULL
+            WHERE a.NotInUse = 0 AND a.Bibsent_ID IS NOT NULL
             GROUP BY a.Bibsent_ID
         """ % {
             'table': self.table_name,

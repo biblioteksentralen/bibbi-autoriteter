@@ -40,6 +40,7 @@ class Nation(Entity):
 
 @dataclass
 class BibbiEntity(Entity):
+    approved: Optional[str] = None
     created: Optional[datetime] = None
     modified: Optional[datetime] = None
     items_as_subject: int = 0
