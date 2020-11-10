@@ -236,7 +236,7 @@ class PromusAuthorityTable(PromusTable):
     def get_item_count_query(self, field_codes: list) -> str:
         return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
             LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
-            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
+            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.CurrentStatus = 1
             WHERE a.Approved = 1 AND a.Bibsent_ID IS NOT NULL
             GROUP BY a.Bibsent_ID
         """ % {
@@ -621,7 +621,7 @@ class GenreTable(PromusAuthorityTable):
         """
         return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
             LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
-            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.ApproveDate IS NOT NULL
+            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.CurrentStatus = 1
             WHERE a.Bibsent_ID IS NOT NULL
             GROUP BY a.Bibsent_ID
         """ % {
@@ -765,7 +765,11 @@ class PersonTable(PromusAuthorityTable):
         'Gender': 'gender',
         'Handle_ID': 'handle_id',
         'Nametype': 'name_type',   # ?
+
+        'KlasseSpraak_Tid': 'klassespraak_tid',  # Ny oktober 2020
+        'KlasseSpraak_Tid_Approved': 'klassespraak_tid_approved',  # Ny oktober 2020
     }
+
 
 class NationTable(PromusTable):
     vocabulary_code = 'bs-nasj'  # @deprecated
