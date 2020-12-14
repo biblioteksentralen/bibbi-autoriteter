@@ -27,6 +27,8 @@ humanize = "^2.5.0"
 orjson = "^3.3.0"
 elasticsearch = "^7.8.0"
 requests = "^2.24.0"
+sqlalchemy = "^1.3.19"
+tqdm = "^4.48.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.2"
@@ -37,10 +39,11 @@ mypy = "^0.782"
 [tool.poetry.scripts]
 process = "bibbi.console.process:main"
 extract_catalogue = "bibbi.console.extract_catalogue:main"
-[build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
 
 [tool.pytest.ini_options]
 addopts = "--verbose tests"
+
+[build-system]
+requires = ["poetry>=1.1.4"]
+build-backend = "poetry.masonry.api"
 
