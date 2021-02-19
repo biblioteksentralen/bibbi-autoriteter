@@ -255,7 +255,9 @@ class PromusAuthorityTable(PromusTable):
                 'items_as_subject': [self.field_code.replace('X', '6')],
             }
             for key, field_codes in field_code_map.items():
-                cursor.execute(self.get_item_count_query(field_codes))
+                query = self.get_item_count_query(field_codes)
+                log.debug(query)
+                cursor.execute(query)
                 rows = []
                 for row in cursor:
                     row = [trim(to_str(c)) for c in row]
@@ -279,6 +281,7 @@ class PromusAuthorityTable(PromusTable):
 
         self.add_document_counts(db)
         log.info('[%s] Table extended to %d x %d', self.type, self.df.shape[0], self.df.shape[1])
+        print(self.df.dtypes)
 
         self.validate_references()
         self.references.load(self)
@@ -389,7 +392,8 @@ class PromusAuthorityTable(PromusTable):
         out = {}
 
         for row in self.rows():
-            if bibbi_id := self.refers_to(row) is not None:
+            bibbi_id = self.refers_to(row)
+            if bibbi_id is not None:
                 if bibbi_id not in out:
                     out[bibbi_id] = [None, row]
                 else:
@@ -400,6 +404,7 @@ class PromusAuthorityTable(PromusTable):
                     out[bibbi_id] = [row]
                 else:
                     out[bibbi_id][0] = row
+
         return out
 
     def make_entity(self, label_factory: LabelFactory, main_row: DataRow, reference_rows: List[DataRow]) -> Optional[Entity]:
@@ -460,8 +465,8 @@ class PromusAuthorityTable(PromusTable):
                         kwargs['type'] = TYPE_LAW
                         kwargs['legislation'] = LanguageMap(nb=main_row.label, nn=main_row.label_nn)
                         # OBS: Alle lovene har samme Felles_ID ! De er altså alle biautoriteter uten en hovedautoritet
-                    else:
-                        kwargs['type'] = TYPE_LAW
+                    #else:
+                    #    kwargs['type'] = TYPE_LAW or TYPE_MUSICALBUM or other?
                 else:
                     kwargs['type'] = TYPE_CORPORATION_SUBJECT
 
@@ -765,6 +770,8 @@ class PersonTable(PromusAuthorityTable):
 
         'KlasseSpraak_Tid': 'klassespraak_tid',  # Ny oktober 2020
         'KlasseSpraak_Tid_Approved': 'klassespraak_tid_approved',  # Ny oktober 2020
+        'KlasseTid': 'klasse_tid', # Ny nov 2020
+        'KlasseComic': 'klasse_comic', # Ny nov 2020
     }
 
 

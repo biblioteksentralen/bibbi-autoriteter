@@ -5,7 +5,7 @@
 - Utviklet siden 1970-tallet.
 - Følger Ellen Hjortsæters Emneordskatalogisering (Hjortsæter, 2010).
 - Rundt 35 000 emnestrenger, 6500 geografiske emnestrenger, 155 000 personautoriteter
-- Emneordspraksisen har sprunget ut fra *Sears List of Subject Headings*. Termeneer knyttet opp mot Deweys desimalklassifikasjonssystem, 5. norske utgave.<ref> ABM Skrift #60, s. 74</ref>
+- Emneordspraksisen har sprunget ut fra *Sears List of Subject Headings*. Termene er knyttet opp mot Deweys desimalklassifikasjonssystem, 5. norske utgave.<ref> ABM Skrift #60, s. 74</ref>
 - Kvalifikator (satt med kolon) brukes for å vise emnets plassering i Dewey-tabellen.
 - Biautoriteter har samme `Felles_ID`, men ulik `Bibsent_ID`
 
@@ -91,11 +91,13 @@ entity.data
 - Steg 3.3: Lagre
 
 
-### Installasjon
+## Installasjon
 
-For tilkobling til Microsft SQL Server bruker vi PyODBC-driveren FreeTDS på Linux og Mac
+### Databasedriver for Microsoft SQL
 
-### Mac:
+For tilkobling til Microsft SQL Server bruker vi PyODBC-driveren FreeTDS på Linux og Mac.
+
+#### Mac:
 
 	brew install unixodbc freetds
 
@@ -111,7 +113,7 @@ And install it:
 
 	sudo odbcinst -i -d -f /usr/local/etc/odbcinst.ini
 
-### Debian/Ubuntu:
+#### Debian/Ubuntu:
 
 	sudo apt install tdsodbc freetds-bin freetds-dev unixodbc-dev
 	sudo odbcinst -i -d -f /etc/odbcinst.ini
