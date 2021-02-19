@@ -1,0 +1,77 @@
+@prefix bibbi: <http://id.bibbi.dev/> .
+@prefix bs: <http://schema.bibbi.dev/> .
+@prefix cc: <http://creativecommons.org/ns#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix group: <http://id.bibbi.dev/group/> .
+@prefix isothes: <http://purl.org/iso25964/skos-thes#> .
+@prefix lexvo: <http://lexvo.org/id/iso639-3/> .
+@prefix mads: <http://www.loc.gov/mads/rdf/v1#> .
+@prefix nkos: <http://w3id.org/nkos#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix sd: <http://www.w3.org/ns/sparql-service-description#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix void: <http://rdfs.org/ns/void#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://id.bibbi.dev/1119070> a bs:Entity,
+        bs:Qualifier,
+        skos:Concept ;
+    dcterms:created "2005-11-03T00:00:47"^^xsd:dateTime ;
+    dcterms:modified "2015-06-15T08:57:36"^^xsd:dateTime ;
+    bs:ddk5 "500" ;
+    bs:itemCount 170 ;
+    bs:webdewey "500" ;
+    skos:closeMatch <http://dewey.info/class/500/e23/> ;
+    skos:inScheme bibbi: ;
+    skos:narrower <http://id.bibbi.dev/1133664> ;
+    skos:prefLabel "Naturvitenskap"@nb,
+        "Naturvitskap"@nn .
+
+<http://id.bibbi.dev/1179559> a bs:Entity,
+        bs:Place,
+        skos:Concept ;
+    dcterms:created "2019-09-30T10:48:41"^^xsd:dateTime ;
+    dcterms:modified "2019-09-30T10:48:41"^^xsd:dateTime ;
+    bs:ddk5 "948" ;
+    bs:itemCount 0 ;
+    bs:webdewey "948" ;
+    skos:closeMatch <http://dewey.info/class/948/e23/> ;
+    skos:inScheme bibbi: ;
+    skos:narrower <http://id.bibbi.dev/1133664> ;
+    skos:prefLabel "Skandinavia"@nb,
+        "Skandinavia"@nn .
+
+<http://id.bibbi.dev/1114693> a bs:Entity,
+        bs:Qualifier,
+        skos:Concept ;
+    dcterms:created "2005-11-02T23:27:46"^^xsd:dateTime ;
+    dcterms:modified "2013-08-27T15:57:54"^^xsd:dateTime ;
+    bs:ddk5 "900" ;
+    bs:itemCount 6 ;
+    bs:webdewey "900" ;
+    skos:closeMatch <http://dewey.info/class/900/e23/> ;
+    skos:inScheme bibbi: ;
+    skos:narrower <http://id.bibbi.dev/1179559> ;
+    skos:prefLabel "Historie"@nb,
+        "Historie"@nn .
+
+<http://id.bibbi.dev/1133664> a bs:Complex,
+        bs:Entity,
+        skos:Concept ;
+    dcterms:created "2007-01-01T00:00:00"^^xsd:dateTime ;
+    dcterms:modified "2015-06-19T09:17:41"^^xsd:dateTime ;
+    bs:ddk5 "509.48" ;
+    bs:itemCount 1 ;
+    skos:broader <http://id.bibbi.dev/1114693>,
+        <http://id.bibbi.dev/1119070>,
+        <http://id.bibbi.dev/1179559> ;
+    skos:inScheme bibbi: ;
+    skos:prefLabel "Naturvitenskap - Skandinavia - Historie"@nb,
+        "Naturvitskap - Skandinavia - Historie"@nn .
