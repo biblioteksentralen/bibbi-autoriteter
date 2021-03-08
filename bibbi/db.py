@@ -27,7 +27,7 @@ class Db:
                 'UID=%(user)s',
                 'PWD=%(password)s',
                 'TDS_Version=8.0',
-                'Port=1433',
+                'Port=%(port)s',
             ]
         else:
             connection_args = [

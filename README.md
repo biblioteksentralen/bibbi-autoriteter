@@ -115,10 +115,11 @@ And install it:
 
 #### Debian/Ubuntu:
 
-	sudo apt install tdsodbc freetds-bin freetds-dev unixodbc-dev
-	sudo odbcinst -i -d -f /etc/odbcinst.ini
+Install dependencies:
 
-Create a template file `odbcinst.ini` at `/etc/odbcinst.ini`
+	sudo apt install python3-dev tdsodbc freetds-bin freetds-dev unixodbc-dev
+
+Create `/etc/odbcinst.ini`:
 
 	[FreeTDS]
 	Description=FreeTDS
@@ -129,3 +130,17 @@ Create a template file `odbcinst.ini` at `/etc/odbcinst.ini`
 And install it:
 
 	sudo odbcinst -i -d -f /etc/odbcinst.ini
+
+#### Testing the connection
+
+If `pyodbc` fails to connect, we don't get much information to help diagnose the problem.
+The command line utility `tsql` provides more information.
+See https://linux.die.net/man/1/tsql
+
+		tsql -H wg-sxd0e-010.i04.local -p 1435 -U promus
+
+### Other dependencies
+
+Finally install Python dependencies using Poetry:
+
+	poetry install

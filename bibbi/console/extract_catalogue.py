@@ -486,6 +486,7 @@ class Runner:
 def get_services():
     promus_adapter = PromusService(connection=Db(**{
         'server': os.getenv('DB_SERVER'),
+        'port': os.getenv('DB_PORT'),
         'database': os.getenv('DB_DB'),
         'user': os.getenv('DB_USER'),
         'password': os.getenv('DB_PASSWORD'),
