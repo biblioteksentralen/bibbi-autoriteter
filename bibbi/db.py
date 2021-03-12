@@ -31,17 +31,21 @@ class Db:
             ]
         else:
             connection_args = [
-                'Driver={SQL Server}',
-                'Server=%(server)s',
+                'Driver={ODBC Driver 17 for SQL Server}',
+                'Server=tcp:%(server)s,%(port)s',
                 'Database=%(database)s',
-                'Trusted_Connection=yes',
+                'UID=%(user)s',
+                'PWD=%(password)s',
             ]
+        log.info('Connecting to %s from %s', db_settings['server'], os.name)
         connection_string = ';'.join(connection_args) % db_settings
         self.connection: pyodbc.Connection = pyodbc.connect(connection_string)
+        log.info('Connected (pyodbc)')
 
         params = quote_plus(connection_string)
         engine = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
         self.alchemy = engine.connect()
+        log.info('Connected (alchemy)')
 
     def cursor(self):
         return self.connection.cursor()
