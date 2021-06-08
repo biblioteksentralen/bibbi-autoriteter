@@ -6,8 +6,8 @@
 @prefix vann:  <http://purl.org/vocab/vann/> .
 @prefix foaf:  <http://xmlns.com/foaf/0.1/> .
 @prefix dc:    <http://purl.org/dc/elements/1.1/> .
-@prefix bs: <http://schema.bibbi.dev/> .
 @prefix schema: <https://schema.org/> .
+@prefix bs: <https://schema.bs.no/> .
 
 bs: a owl:Ontology ;
   owl:versionInfo "0.1.0" ;
@@ -74,8 +74,8 @@ bs:Person a rdfs:Class , owl:Class ;
   rdfs:label "Person"@nb ,
     "Person"@nn ,
     "Person"@en ;
-  rdfs:comment """Faktisk person (ikke fiktiv) eller pseudonym/bibliografisk identitet, f.eks. Roberth Galbraith (http://id.bibbi.dev/bibbi/315434). 
-  Et pseudonym kan være for flere personer, f.eks. A.B.S. (http://id.bibbi.dev/bibbi/43620) """@nb ;
+  rdfs:comment """Faktisk person (ikke fiktiv) eller pseudonym/bibliografisk identitet, f.eks. Roberth Galbraith (https://id.bs.no/bibbi/315434).
+  Et pseudonym kan være for flere personer, f.eks. A.B.S. (https://id.bs.no/bibbi/43620) """@nb ;
   schema:sameAs <https://www.wikidata.org/wiki/Q215627> ;
 .
 

@@ -26,12 +26,14 @@ class WikidataService:
 
     def request(self, query: str):
         client = SPARQLWrapper2('https://query.wikidata.org/sparql')
+        client.agent = 'BiblioteksentralenBot (Dan.Michael.Heggo@bibsent.no)'
         client.setQuery(self.standardPrefixes + query)
         retry_no = 0
         while True:
             try:
                 return client.query()
             except HTTPError as error:
+                print(error)
                 retry_no += 1
                 if retry_no > self.max_retries:
                     raise Exception('Max number of retries (%d) exhausted. Giving up.', self.max_retries)

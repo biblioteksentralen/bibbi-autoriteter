@@ -1,3 +1,4 @@
+# encoding=utf-8
 import argparse
 import logging
 import os
@@ -19,8 +20,8 @@ from elasticsearch import Elasticsearch, helpers
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
+from bibbi.console.config import Config
 from bibbi.db import Db, ColumnDataTypes
-from bibbi.logging import configure_logging
 from bibbi.promus_service import PromusService
 
 log = logging.getLogger(__name__)
@@ -131,7 +132,7 @@ class Report:
                 link = None
                 if value.startswith('{BIBBI}'):
                     value = value[7:]
-                    link = 'https://id.bibbi.dev/bibbi/' + value
+                    link = 'https://id.bs.no/bibbi/' + value
                 elif value.startswith('{NORAF}'):
                     value = value[7:]
                     link = 'https://bsaut.toolforge.org/show/' + value
@@ -152,10 +153,11 @@ class Report:
 
 class Runner:
 
-    def __init__(self, elasticsearch: Elasticsearch, promus_adapter: PromusService, cache: Cache):
-        self.es = elasticsearch
+    def __init__(self, promus_adapter: PromusService, cache: Cache, config: Config):
+        # self.es = elasticsearch
         self.conn = promus_adapter.connection
         self.cache = cache
+        self.config = config
 
     def get_data(self, query: str, params: ColumnDataTypes = None, **kwargs) -> pd.DataFrame:
         key = hashlib.sha1(query.encode('utf-8')).hexdigest()
@@ -224,7 +226,7 @@ class Runner:
             ItemSubField.Text AS value
           FROM ItemField
           INNER JOIN ItemSubField ON ItemSubField.ItemField_ID = ItemField.ItemField_ID
-          WHERE ItemField.FieldCode IN ('019', '245', '260')
+          WHERE ItemField.FieldCode IN ('019', '020', '024', '245', '260')
           ORDER BY ItemField.Item_ID, ItemField.FieldCode
         ''')
 
@@ -234,16 +236,31 @@ class Runner:
             SELECT
                 LTRIM(STR(Item_ID)) AS item_id,
                 ApproveDateFirst AS cataloguing_date,
+                ApproveDate AS approve_date,
+                ItemYear as pub_year,
                 Title AS title_ax,
                 --, dbo.fn_ItemSubFieldText(Item_ID, '245', 'a') as f245a,
                 --, dbo.fn_ItemSubFieldText(Item_ID, '245', 'b') as f245b,
                 --, dbo.fn_ItemSubFieldText(Item_ID, '260', 'c') as f260c,
-                Varenr AS ean,
+                Varenr AS varenr,
                 LTRIM(STR(BibbiNr)) AS bibbi_id
             FROM Item
             WHERE ApproveDateFirst IS NOT NULL
+            AND ApproveDate IS NOT NULL
             -- AND ApproveDate >= '2019'
-        ''', dont_touch=['cataloguing_date'])
+        ''', dont_touch=['cataloguing_date', 'approve_date'], )
+
+    @timing
+    def get_export2ax(self):
+        return self.get_data('''
+            SELECT
+                ID AS id,
+                LTRIM(STR(PromusID)) AS item_id,
+                EAN AS ean,
+                DocumentType AS doc_type
+            FROM Export_PromusToAx
+        ''')
+
 
     @timing
     def get_person_roles(self):
@@ -271,7 +288,7 @@ class Runner:
         ''')
         return res
 
-    def convert(self, items, marc_data, roles, doc_types, authority_links, authorities) -> Generator:
+    def convert(self, items, export2ax, marc_data, roles, doc_types, authority_links, authorities) -> Generator:
         valid = 0
         invalid = 0
 
@@ -285,14 +302,25 @@ class Runner:
             ReportHeader('', 'Streng', 80),
         ])
 
+        #print("SORT")
+        # export2ax = sorted(export2ax, key=lambda x: x.id, reverse=True)
+        export2ax_map = {}
+        for rec in tqdm(export2ax.itertuples()):
+            cur = export2ax_map.get(rec.item_id)
+            if cur is None or rec.id > cur.id:
+                export2ax_map[rec.item_id] = rec
+        del export2ax # Free some memory (maybe)
+        log.info('✔ export2ax map done (%d items)', len(export2ax_map))
+
         # Map: item.item_id -> MARC fields
         marc_map = {}
         for rec in tqdm(marc_data.itertuples()):
             if rec.item_id not in marc_map:
                 marc_map[rec.item_id] = {}
             k = rec.field + '$' + rec.subfield
-            marc_map[rec.item_id][k] = rec.value
-        log.info('MARC map done')
+            marc_map[rec.item_id][k] = rec.value  # Note: If multiple values, only the last one is used
+        del marc_data  # Free some memory (maybe)
+        log.info('✔ MARC map done (%d items)', len(marc_map))
 
         # Map: aut.local_id -> aut.bibsent_id
         authority_map = {}
@@ -345,23 +373,34 @@ class Runner:
             'mangler Bibbi-ID': 0,
         }
         for item in tqdm(items.itertuples()):
-            marc_map_item = marc_map.get(item.item_id)
+            # print(item.item_id)
+            export2ax_item = export2ax_map.get(item.item_id)
+            marc_map_item = marc_map.get(item.item_id, {})
             title = marc_map_item.get('245$a')
             subtitle = marc_map_item.get('245$b')
             if subtitle is not None:
                 title += ' : ' + subtitle
             doc = {
-                'id': item.bibbi_id,
+                '_id': item.bibbi_id,
                 # 'title_ax': item.title_ax,
-                'ean': item.ean,
+                'ean': marc_map_item.get('025$a') or marc_map_item.get('020$a'),
                 'cataloguing_date': item.cataloguing_date.strftime('%Y-%m-%d'),
+                'approve_date': item.approve_date.strftime('%Y-%m-%d'),
                 'title': title,
-                # 'pub_year': re.sub('[^0-9]', '', item.f260c or ''),
+                'pub_year': item.pub_year,
+                'pub_place': marc_map_item.get('260$a'),
+                'publisher': marc_map_item.get('260$b'),
                 'authorities': [],
-                'doc_type': marc_map_item.get('019$b'),
+                'doc_types': marc_map_item.get('019$b'),
                 'form': marc_map_item.get('019$d'),
             }
-            doc['doc_type'] = doctype_map.get(doc['doc_type'], doc['doc_type'])
+            if export2ax_item:
+                # doc['ean'] = export2ax_item.ean
+                doc['doc_type'] = export2ax_item.doc_type
+            if doc['doc_types'] is None:
+                doc['doc_types'] = []
+            else:
+                doc['doc_types'] = [doctype_map.get(x, x) for x in doc['doc_types'].split(',')]
 
             form_map = {
                 "A": "Antologi",
@@ -406,7 +445,10 @@ class Runner:
                             authority_dict['type'] = 'work'
                             authority_dict['title'] = authority.title
                         else:
-                            authority_dict['type'] = 'person'
+                            authority_dict['type'] = 'creator'
+                            if marc_field.startswith('10') or marc_field.startswith('70'):
+                                authority_dict['is_person'] = True
+
                     elif marc_field.startswith('655'):
                         authority_dict['type'] = 'genre'
                     elif marc_field.startswith('651'):
@@ -452,6 +494,10 @@ class Runner:
             print("\nERROR:", e)
 
     def run(self):
+        log.info('Get export2ax')
+        export2ax = self.get_export2ax()
+        log.info("Got %d rows", len(export2ax))
+
         log.info('Get items')
         items = self.get_items()
 
@@ -467,23 +513,29 @@ class Runner:
         log.info('Got %d items, %d authority_links, %d authorities',
                  len(items), len(authority_links), len(authorities))
 
-        records = list(self.convert(items, marc_data, roles, doc_types, authority_links, authorities))
+        dest_file = self.config.dest_dir.joinpath('catalog.jsonl')
 
-        log.info('Produced %d records', len(records))
+        nrecs = 0
+        with dest_file.open('wb') as fp:
+            for record in self.convert(items, export2ax, marc_data, roles, doc_types, authority_links, authorities):
+                fp.write(orjson.dumps(record, option=orjson.OPT_APPEND_NEWLINE))
+                nrecs += 1
+
+        log.info('Wrote %d records to %s', nrecs, dest_file.name)
 
         # for record in records[:20]:
         #     print(orjson.dumps(record, option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE).decode('utf-8'))
 
         # return
 
-        with open('dump.json', 'wb') as fp:
-            fp.write(self.dump(records))
+        #with self.config.dest_dir.joinpath('catalog.json').open('wb') as fp:
+        #    fp.write(self.dump(records))
 
-        self.push_to_es(records)
+        #self.push_to_es(records)
 
 
 
-def get_services():
+def get_services(config: Config):
     promus_adapter = PromusService(connection=Db(**{
         'server': os.getenv('DB_SERVER'),
         'port': os.getenv('DB_PORT'),
@@ -492,29 +544,24 @@ def get_services():
         'password': os.getenv('DB_PASSWORD'),
     }))
 
-    elasticsearch_adapter = Elasticsearch(
-        [os.getenv('ELASTICSEARCH_HOST')],
-        http_auth=(os.getenv('ELASTICSEARCH_USER'), os.getenv('ELASTICSEARCH_PASSWORD'))
-    )
+    #elasticsearch_adapter = Elasticsearch(
+    #    [os.getenv('ELASTICSEARCH_HOST')],
+    #    http_auth=(os.getenv('ELASTICSEARCH_USER'), os.getenv('ELASTICSEARCH_PASSWORD'))
+    #)
 
     return {
+        'config': config,
         'promus_adapter': promus_adapter,
-        'elasticsearch': elasticsearch_adapter,
-        'cache': Cache('cache', 36000)
+        #'elasticsearch': elasticsearch_adapter,
+        'cache': Cache('cache', 36000),
     }
 
 
-def main():
-    load_dotenv()
-    parser = argparse.ArgumentParser(
-        description='Bibbi catalogue extractor.'
-    )
-    parser.add_argument('--no-cache', action='store_true', default=False)
-    options = parser.parse_args()
+def extract_catalog(config: Config, options):
 
-    configure_logging()
+    # configure_logging()
 
-    services = get_services()
+    services = get_services(config)
     if options.no_cache:
         services['cache'].max_age = 0
 

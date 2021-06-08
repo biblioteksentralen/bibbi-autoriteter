@@ -14,9 +14,9 @@
 @prefix nkos: <http://w3id.org/nkos#> .
 @prefix isothes: <http://purl.org/iso25964/skos-thes#> .
 @prefix schema: <http://schema.org/> .
-@prefix bs: <http://schema.bibbi.dev/> .
-@prefix : <http://id.bibbi.dev/bibbi/> .
-@prefix group: <http://id.bibbi.dev/bibbi/group/> .
+@prefix bs: <https://schema.bs.no/> .
+@prefix : <https://id.bs.no/bibbi/> .
+@prefix group: <https://id.bs.no/bibbi/group/> .
 
 : a skos:ConceptScheme, void:Dataset, sd:Graph ;
     rdfs:label "Bibbi autoriteter"@nb , "Bibbi autoritetar"@nn ;
@@ -39,20 +39,3 @@
         "Biblioteksentralen"@nn ;
     owl:sameAs <http://www.wikidata.org/entity/Q4903496> ,
         <http://viaf.org/viaf/229233924> .
-
-group:place a isothes:ConceptGroup, skos:Collection ;
-  skos:prefLabel "Steder"@nb, "Stadar"@nn, "Places"@en .
-
-group:topic a isothes:ConceptGroup, skos:Collection ;
-  skos:prefLabel "Emner"@nb, "Emne"@nn, "Topics"@en .
-
-group:corporation a isothes:ConceptGroup, skos:Collection ;
-  skos:prefLabel "Korporasjoner"@nb, "Korporasjonar"@nn, "Corporations"@en .
-
-group:person a isothes:ConceptGroup, skos:Collection ;
-  skos:prefLabel "Personer"@nb, "Personar"@nn, "Persons"@en .
-
-group:nasj a isothes:ConceptGroup, skos:Collection ;
-  skos:prefLabel "Nasjonaliteter"@nb, "Nasjonalitetar"@nn, "Nationalities"@en ;
-  dcterms:description "Demografiske grupper definert ved tilhørighet til land eller folkeslag/etnisk gruppe."
-.

@@ -49,6 +49,8 @@ class BibbiEntity(Entity):
     webdewey_nr: Optional[str] = None
     webdewey_approved: Optional[str] = None
     noraf_id: Optional[str] = None
+    concept_group: Optional[str] = None
+    external_uri: Optional[str] = None
     nationality: Optional[str] = None
     nationality_entities: List[BibbiEntity] = field(default_factory=list)
     date: Optional[str] = None

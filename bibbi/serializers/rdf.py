@@ -3,7 +3,7 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Iterable, List
+from typing import TYPE_CHECKING, Optional, Iterable, List, Union
 
 import rdflib
 import os
@@ -22,8 +22,8 @@ log = logging.getLogger(__name__)
 
 # namespaces: bibbi eller bibsent ?
 ISOTHES = Namespace('http://purl.org/iso25964/skos-thes#')
-ONTO = Namespace('http://schema.bibbi.dev/')
-SCHEMA = Namespace('https://schema.org/')
+SCHEMA = Namespace('http://schema.org/')
+ONTO = Namespace('https://schema.bs.no/')
 
 
 def initialize_filters(filters: list) -> dict:
@@ -51,8 +51,11 @@ class RdfSerializer:
         self.staged = []
         self.concept_schemes: List[ConceptScheme] = []
 
-    def load(self, filename, format='turtle'):
-        self.graph.load(filename, format=format)
+    def load(self, files: Union[List[str], str], format='turtle'):
+        if not isinstance(files, list):
+            files = [files]
+        for filename in files:
+            self.graph.load(filename, format=format)
         return self
 
     def set_concept_schemes(self, concept_schemes: List[ConceptScheme]):
@@ -163,6 +166,11 @@ class Graph:
             uri = URIRef('http://authority.bibsys.no/authority/rest/authorities/html/' + entity.noraf_id)
             self.add(entity, SKOS.exactMatch, uri)
 
+        if entity.external_uri is not None:
+            # Note: authority.bibsys.no doesn't deliver RDF, and livedata.bibsys.no is no more.
+            uri = URIRef(entity.external_uri)
+            self.add(entity, SKOS.exactMatch, uri)
+
     def add_entities(self, entities: Iterable[Entity], concept_schemes: List[ConceptScheme]):
         for entity in entities:
             self.add_entity(entity, concept_schemes)
@@ -184,6 +192,12 @@ class Graph:
             # TYPE_NATION: ONTO.Nation,
             TYPE_DEMOGRAPHIC_GROUP: ONTO.DemographicGroup,
             TYPE_FICTIVE_PERSON: ONTO.FictivePerson,
+        }
+
+        concept_groups = {
+            'nasj': URIRef('https://id.bs.no/bibbi/group/f20ee617-c670-4e6a-81d0-0fe823057548'),
+            'spill': URIRef('https://id.bs.no/bibbi/group/a3ac9412-c520-4b1e-b393-ab9b0fc690b7'),
+            'film': URIRef('https://id.bs.no/bibbi/group/efbe2d4b-b3de-4194-b069-b764b1333a23'),
         }
 
         # ------------------------------------------------------------
@@ -280,6 +294,13 @@ class Graph:
             for other_entity_uri in entity.exact_match:
                 self.add(entity, SKOS.exactMatch, URIRef(other_entity_uri))
 
+            # @TODO: Currently only one group is possible, but should add support for more
+            if entity.concept_group:
+                if entity.concept_group in concept_groups:
+                    self.add_raw(concept_groups[entity.concept_group], SKOS.member, entity.uri())
+                else:
+                    log.warning('Found unknown concept group: %s', entity.concept_group)
+
             # ------------------------------------------------------------
             # Misc
 
@@ -300,7 +321,7 @@ class Graph:
 
             if entity.type == TYPE_DEMOGRAPHIC_GROUP:
                 # Temporary solution, we should have groups on the entity instead.
-                self.add_raw(URIRef('http://id.bibbi.dev/bibbi/group/nasj'), SKOS.member, entity.uri())
+                self.add_raw(concept_groups['nasj'], SKOS.member, entity.uri())
 
             for nationality in entity.nationality_entities:
                 self.add(entity, ONTO.nationality, nationality.uri())
@@ -345,7 +366,7 @@ class Graph:
         before = len(self.graph)
         query = """
         PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-        PREFIX bs: <http://schema.bibbi.dev/>
+        PREFIX bs: <https://schema.bs.no/>
 
         DELETE {
             ?c ?p1 ?o1 .

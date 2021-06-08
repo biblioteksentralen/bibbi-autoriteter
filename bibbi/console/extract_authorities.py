@@ -250,24 +250,29 @@ def serialize_as_rdf(collections):
     #     .serialize('out/bs-nasj.nt', 'ntriples')
 
     last_modified = collections['bibbi'].get_last_modified()
+
     bibbi_concept_scheme = ConceptScheme(
-        URIRef('http://id.bibbi.dev/bibbi/'),
+        URIRef('https://id.bs.no/bibbi/'),
         last_modified
     )
 
+    extra_src_files = {
+        TYPE_TOPICAL: ['src/bibbi-emner.ttl'],
+        TYPE_GENRE: ['src/bibbi-sjanger-form.ttl'],
+    }
+
     concept_scheme_uris = {
-        TYPE_GENRE: URIRef('http://id.bibbi.dev/bibbi-sjanger-form/'),
-        TYPE_TOPICAL: URIRef('http://id.bibbi.dev/bibbi-emner/'),
-        TYPE_GEOGRAPHIC: URIRef('http://id.bibbi.dev/bibbi-geografisk/'),
-        TYPE_PERSON: URIRef('http://id.bibbi.dev/bibbi-personer/'),
-        TYPE_CORPORATION: URIRef('http://id.bibbi.dev/bibbi-korporasjoner/'),
+        TYPE_GENRE: URIRef('https://id.bs.no/bibbi-sjanger-form/'),
+        TYPE_TOPICAL: URIRef('https://id.bs.no/bibbi-emner/'),
+        TYPE_GEOGRAPHIC: URIRef('https://id.bs.no/bibbi-geografisk/'),
+        TYPE_PERSON: URIRef('https://id.bs.no/bibbi-personer/'),
+        TYPE_CORPORATION: URIRef('https://id.bs.no/bibbi-korporasjoner/'),
     }
 
     for source_type in [TYPE_GENRE, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION]:
         entities = collections['bibbi'].filter(lambda entity: entity.source_type == source_type)
         RdfEntityAndMappingSerializer() \
-            .load('src/bs.ttl') \
-            .load('src/bibbi.scheme.ttl') \
+            .load(['src/bs.ttl', 'src/bibbi.scheme.ttl', *extra_src_files.get(source_type, [])]) \
             .set_concept_schemes([
                 bibbi_concept_scheme,
                 ConceptScheme(concept_scheme_uris[source_type], entities.get_last_modified())
@@ -353,15 +358,6 @@ def get_services(use_cache: bool):
     }
 
 
-def main():
-    load_dotenv()
-    parser = argparse.ArgumentParser(
-        description='Bibbi authorities conversion pipeline.'
-    )
-    parser.add_argument('--use-cache', action='store_true', default=False)
-    parser.add_argument('--remove-unused', action='store_true', default=False)
-    options = parser.parse_args()
-
-    configure_logging()
+def extract_authorities(config, options):
     services = get_services(options.use_cache)
     run(services, options.use_cache, options.remove_unused)

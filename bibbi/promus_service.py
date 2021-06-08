@@ -226,7 +226,7 @@ class PromusTable:
 
 class PromusAuthorityTable(PromusTable):
     vocabulary_code = 'bibbi'
-    namespace = Namespace('http://id.bibbi.dev/bibbi/')
+    namespace = Namespace('https://id.bs.no/bibbi/')
     entity_class = BibbiEntity
 
     def __init__(self, df: Optional[pd.DataFrame] = None):
@@ -615,6 +615,8 @@ class GenreTable(PromusAuthorityTable):
         'Source': 'source',  # (ikke i bruk)
         'Bibsent_ID': 'bibsent_id',  # Identifikator for bruk i $0
         'Comment': 'comment',  # Intern note, ikke i bruk
+        'URI': 'external_uri',  # NTSF
+        'ConceptGroup': 'concept_group',  # film/spill
     }
 
     def get_item_count_query(self, field_codes: list) -> str:
@@ -777,7 +779,7 @@ class PersonTable(PromusAuthorityTable):
 
 class NationTable(PromusTable):
     vocabulary_code = 'bs-nasj'  # @deprecated
-    namespace = Namespace('http://id.bibbi.dev/bs-nasj/')  # @deprecated
+    namespace = Namespace('https://id.bs.no/bs-nasj/')  # @deprecated
     entity_class = Nation
     type = 'nation'
     table_name = 'EnumCountries'

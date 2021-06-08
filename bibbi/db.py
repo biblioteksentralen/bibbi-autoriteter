@@ -61,6 +61,8 @@ class Db:
                                params=params,
                                parse_dates=date_fields)
 
+        df = df.fillna(0)
+
         for key in df.keys():  # columns
             ct = df[key].dtype
             if ct != np.object:
@@ -68,8 +70,12 @@ class Db:
 
                 if key not in dont_touch and key not in date_fields:
                     log.info('Converting "%s" column to str', key)
+                    # Would be much better if we could get the data as str initially, so
+                    # we didn't have to convert back.
                     if ct == np.float64:
                         # Need to convert to int first to avoid decimal
+                        # Note: null values cause 'Cannot convert non-finite values (NA or inf) to integer'
+                        #       unless we first use df.fillna(0)
                         df[key] = df[key].astype('int64', copy=False).astype('object', copy=False)
                     elif ct == np.int64:
                         # Need to convert to int first to avoid decimal :/

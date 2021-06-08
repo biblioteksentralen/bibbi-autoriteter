@@ -1,0 +1,18 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix isothes: <http://purl.org/iso25964/skos-thes#> .
+@prefix group: <https://id.bs.no/bibbi/group/> .
+
+group:efbe2d4b-b3de-4194-b069-b764b1333a23
+    a isothes:ConceptGroup, skos:Collection ;
+    skos:prefLabel "Filmsjangre"@nb,
+        "Filmsjangre"@nn,
+        "Film genres"@en ;
+.
+
+group:a3ac9412-c520-4b1e-b393-ab9b0fc690b7
+    a isothes:ConceptGroup, skos:Collection ;
+    skos:prefLabel "Dataspillsjangre"@nb,
+        "Dataspelsjangre"@nn,
+        "Video game genres"@en ;
+.
