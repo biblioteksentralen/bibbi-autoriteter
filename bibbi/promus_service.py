@@ -617,22 +617,9 @@ class GenreTable(PromusAuthorityTable):
         'Comment': 'comment',  # Intern note, ikke i bruk
         'URI': 'external_uri',  # NTSF
         'ConceptGroup': 'concept_group',  # film/spill
+        'Approved': 'approved',  # (bool)
     }
 
-    def get_item_count_query(self, field_codes: list) -> str:
-        """
-        The genre table does not have an Approved column.
-        """
-        return """SELECT a.Bibsent_ID, COUNT(i.Item_ID) FROM %(table)s AS a
-            LEFT JOIN ItemField AS f ON f.Authority_ID = a.%(id_field)s AND f.FieldCode IN (%(field_codes)s)
-            LEFT JOIN Item AS i ON i.Item_ID = f.Item_ID AND i.CurrentStatus = 1
-            WHERE a.NotInUse = 0 AND a.Bibsent_ID IS NOT NULL
-            GROUP BY a.Bibsent_ID
-        """ % {
-            'table': self.table_name,
-            'id_field': self.id_field,
-            'field_codes': ', '.join(["'%s'" % field_code for field_code in field_codes]),
-        }
 
 class CorporationTable(PromusAuthorityTable):
     type = 'corporation'
