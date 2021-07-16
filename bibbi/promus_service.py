@@ -764,6 +764,72 @@ class PersonTable(PromusAuthorityTable):
     }
 
 
+class ConferenceTable(PromusAuthorityTable):
+    type = 'event'
+    table_name = 'AuthorityConf'
+    id_field = 'ConfID'
+    field_code = 'X11'
+    columns = {
+        'ConfID': 'row_id',
+        'ConfName': 'label',
+        'ConfName_N': 'label_nn',  #
+        'ConfPlace': 'location',  # $c Location of meeting
+        'ConfDate': 'date',  # $d Date of meeting or treaty signing
+        'ConfNr': 'conf_nr',  # $n Number of part/section/meeting ?
+        'ConfDetail': 'detail',  # (Forklarende parentes)
+        'SortingTitle': 'sorting_title',
+        'TopicTitle': 'work_title',  # $t - Title of a work / Tittel for dokument som emne
+        'SortingSubTitle': 'sorting_subtitle',  #
+        'UnderTopic': 'sub_topic',  # Underinndeling ($x), med –
+        'UnderTopic_N': 'sub_topic_nn',
+        'Qualifier': 'qualifier',  # : kvalifikator ($0 i NORMARC)
+        'DeweyNr': 'ddk5_nr',
+        'TopicDetail': 'detail_topic',
+        'TopicLang': 'topic_lang',  # (ikke i bruk, ser ut til å være generert)
+        'FieldCode': 'field_code',
+        'Security_ID': 'security_id',
+        'UserID': 'userid',
+        'LastChanged': 'modified',
+        'Created': 'created',
+        'Approved': 'approved',
+        'ApproveDate': 'approve_date',
+        'ApprovedUserID': 'approved_by',
+        'BibbiNr': 'bibbi_nr',
+        'NotInUse': 'not_in_use',
+        'Reference': 'ref',
+        'ReferenceNr': 'ref_id',
+        'Source': 'source',
+        'bibbireferencenr': 'bibi_ref_nr',
+        'WebDeweyNr': 'webdewey_nr',
+        'WebDeweyApproved': 'webdewey_approved',
+        'WebDeweyKun': 'webdewey_kun',
+        'NB_ID': 'nb_id',  # BARE-ID
+        'NB_Origin': 'nb_origin',  # 'adabas'
+        'Bibsent_ID': 'bibsent_id',  # Verdi for $0
+        'Felles_ID': 'felles_id',  # Felles ID når vi har både hoved- og biautoriteter
+        'MainPerson': 'main_record',  # (bool) hovedautoritet eller biautoritet
+        'Origin': 'origin',
+        'KatStatus': 'kat_status',
+        'Comment': 'comment',
+        'Handle_ID': 'handle_id',
+        '_DisplayValue': 'display_value',
+
+        # 'ConfDetail_N': 'detail_nn',  #
+        # 'Qualifier_N': 'qualifier_nn',  #
+        # 'ConfFunc': 'corp_func',  # (ikke i bruk)
+
+        # Work title components
+        # 'MusicCast': 'music_scoring',  # $m Besetning / "Medium of performance for music"
+        # 'MusicNr': 'music_nr',  # $i f.eks. "op 150, nr. 2"
+        # 'Arrangment': 'music_arr',  # $o "Arranged statement for music"
+        # 'ToneArt': 'music_key',  # $r - "Key for music"
+
+        # 'GeoUnderTopic': 'sub_geo',
+        # 'GeoUnderTopic_N': 'sub_geo_nn',
+        # 'Lov': 'law',               # Flagg (0 eller 1) som brukes for å angi at det er en lov
+    }
+
+
 class NationTable(PromusTable):
     vocabulary_code = 'bs-nasj'  # @deprecated
     namespace = Namespace('https://id.bs.no/bs-nasj/')  # @deprecated

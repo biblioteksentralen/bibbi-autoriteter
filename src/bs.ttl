@@ -105,6 +105,24 @@ bs:CorporationSubject a rdfs:Class , owl:Class ;
   rdfs:comment "En korporasjon som emne."@nb ;
 .
 
+# schema:Event ?
+bs:Event a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  # rdfs:subClassOf ? ;
+  rdfs:label "Arrangement"@nb ,
+    "Arrangement"@nn ,
+    "Event"@en ;
+  rdfs:comment "Konferanse, møte, festival eller annet frittstående eller gjentakende arrangement."@nb ;
+.
+
+bs:EventSubject a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:label "Arrangement som emne"@nb ,
+    "Arrangement som emne"@nn ,
+    "Event as subject"@en ;
+  rdfs:comment "Et frittstående eller gjentakende arrangement som emne."@nb ;
+.
+
 bs:Title a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   # rdfs:subClassOf foaf:Organization ;

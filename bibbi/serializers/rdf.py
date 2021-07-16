@@ -15,7 +15,7 @@ import skosify
 from ..util import ensure_parent_dir_exists
 from ..constants import TYPE_PERSON, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION, \
     TYPE_TITLE, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_QUALIFIER, TYPE_COMPLEX, \
-    TYPE_TITLE_SUBJECT, TYPE_NATION, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON
+    TYPE_TITLE_SUBJECT, TYPE_NATION, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON, TYPE_EVENT, TYPE_EVENT_SUBJECT
 from ..entity_service import Entity, BibbiEntity, Nation
 
 log = logging.getLogger(__name__)
@@ -182,7 +182,9 @@ class Graph:
             TYPE_GENRE: ONTO.FormGenre,
             TYPE_CORPORATION: ONTO.Corporation,
             TYPE_PERSON: ONTO.Person,
+            TYPE_EVENT: ONTO.Event,
             TYPE_CORPORATION_SUBJECT: ONTO.CorporationSubject,
+            TYPE_EVENT_SUBJECT: ONTO.EventAsSubject,
             TYPE_PERSON_SUBJECT: ONTO.PersonSubject,
             TYPE_QUALIFIER: ONTO.Qualifier,
             TYPE_COMPLEX: ONTO.Complex,

@@ -18,7 +18,7 @@ from bibbi.serializers.rdf import RdfEntityAndMappingSerializer, RdfEntitySerial
     ConceptScheme
 
 from bibbi.constants import TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON, TYPE_PERSON_SUBJECT, TYPE_CORPORATION_SUBJECT, \
-    TYPE_DEMOGRAPHIC_GROUP, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_TOPICAL, TYPE_CORPORATION
+    TYPE_DEMOGRAPHIC_GROUP, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_TOPICAL, TYPE_CORPORATION, TYPE_EVENT
 from dotenv import load_dotenv
 
 from bibbi.db import Db
@@ -26,7 +26,7 @@ from bibbi.entity_service import BibbiEntity, Entity, EntityCollection, Nation
 from bibbi.logging import configure_logging
 from bibbi.promus_cache import PromusCache
 from bibbi.promus_service import PromusService, GenreTable, PromusTable, PersonTable, TopicTable, \
-    GeographicTable, CorporationTable, NationTable
+    GeographicTable, CorporationTable, NationTable, ConferenceTable
 
 log = logging.getLogger(__name__)
 
@@ -267,9 +267,10 @@ def serialize_as_rdf(collections):
         TYPE_GEOGRAPHIC: URIRef('https://id.bs.no/bibbi-geografisk/'),
         TYPE_PERSON: URIRef('https://id.bs.no/bibbi-personer/'),
         TYPE_CORPORATION: URIRef('https://id.bs.no/bibbi-korporasjoner/'),
+        TYPE_EVENT: URIRef('https://id.bs.no/bibbi-arrangementer/'),
     }
 
-    for source_type in [TYPE_GENRE, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION]:
+    for source_type in [TYPE_GENRE, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION, TYPE_EVENT]:
         entities = collections['bibbi'].filter(lambda entity: entity.source_type == source_type)
         RdfEntityAndMappingSerializer() \
             .load(['src/bs.ttl', 'src/bibbi.scheme.ttl', *extra_src_files.get(source_type, [])]) \
@@ -298,6 +299,7 @@ def run(services: dict, use_cache: bool, remove_unused: bool):
         TopicTable,
         GeographicTable,
         GenreTable,
+        ConferenceTable,
         CorporationTable,
         PersonTable,
     ])
