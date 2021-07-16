@@ -26,6 +26,7 @@ bs:Topic a rdfs:Class , owl:Class ;
 # schema:Place
 bs:Place a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Geografisk sted"@nb ,
     "Geografisk stad"@nn ,
     "Geographic place"@en ;
@@ -42,6 +43,7 @@ bs:Country a rdfs:Class , owl:Class ;
 
 bs:GenreOrForm a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Form/sjanger"@nb ,
     "Form/genre"@en ;
   rdfs:comment "Genre or form."@en ;
@@ -50,6 +52,7 @@ bs:GenreOrForm a rdfs:Class , owl:Class ;
 # schema:Person
 bs:Person a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;  # For visning i "Antall ressurser etter type" i Skosmos, men på et tidsp. bør vi kanskje skille klarere mellom RWO-er og ikke.
   # rdfs:subClassOf foaf:Person ;
   rdfs:label "Person"@nb ,
     "Person"@nn ,
@@ -59,8 +62,9 @@ bs:Person a rdfs:Class , owl:Class ;
   schema:sameAs <https://www.wikidata.org/wiki/Q215627> ;
 .
 
-bs:PersonSubject a rdfs:Class , owl:Class ;
+bs:PersonAsSubject a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Person som emne"@nb ,
     "Person som emne"@nn ,
     "Person som emne"@en ;
@@ -70,15 +74,17 @@ bs:PersonSubject a rdfs:Class , owl:Class ;
 # schema:Organization
 bs:Corporation a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
-  # rdfs:subClassOf foaf:Organization ;
+  # rdfs:subClassOf foaf:Organization, schema:Organization ;
+  rdfs:subClassOf skos:Concept ;  # For visning i "Antall ressurser etter type" i Skosmos, men på et tidsp. bør vi kanskje skille klarere mellom RWO-er og ikke.
   rdfs:label "Korporasjon"@nb ,
     "Korporasjon"@nn ,
     "Corporation"@en ;
   rdfs:comment "Corporation."@nb ;
 .
 
-bs:CorporationSubject a rdfs:Class , owl:Class ;
+bs:CorporationAsSubject a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Korporasjon som emne"@nb ,
     "Korporasjon som emne"@nn ,
     "Corporation as subject"@en ;
@@ -89,14 +95,16 @@ bs:CorporationSubject a rdfs:Class , owl:Class ;
 bs:Event a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   # rdfs:subClassOf ? ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Arrangement"@nb ,
     "Arrangement"@nn ,
     "Event"@en ;
   rdfs:comment "Konferanse, møte, festival eller annet frittstående eller gjentakende arrangement."@nb ;
 .
 
-bs:EventSubject a rdfs:Class , owl:Class ;
+bs:EventAsSubject a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Arrangement som emne"@nb ,
     "Arrangement som emne"@nn ,
     "Event as subject"@en ;
@@ -106,15 +114,17 @@ bs:EventSubject a rdfs:Class , owl:Class ;
 bs:Title a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   # rdfs:subClassOf foaf:Organization ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Tittel"@nb ,
     "Tittel"@nn ,
     "Title"@en ;
   rdfs:comment "A work title."@nb ;
 .
 
-bs:TitleSubject a rdfs:Class , owl:Class ;
+bs:TitleAsSubject a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   # rdfs:subClassOf foaf:Organization ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Tittel som emne"@nb ,
     "Tittel som emne"@nn ,
     "Title as subject"@en ;
@@ -150,6 +160,7 @@ bs:Nationality a rdfs:Class , owl:Class ;
 
 bs:Law a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Lov"@nb ,
     "Lov"@nn ,
     "Law"@en ;
@@ -157,8 +168,9 @@ bs:Law a rdfs:Class , owl:Class ;
 
 bs:Complex a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
-  rdfs:label "Emnestreng"@nb ,
-    "Emnestreng"@nn ,
+  rdfs:subClassOf skos:Concept ;
+  rdfs:label "Sammensatt begrep / emnestreng"@nb ,
+    "Samansett omgrep / emnestreng"@nn ,
     "Complex concept"@en ;
 .
 
