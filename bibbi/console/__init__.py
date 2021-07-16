@@ -1,6 +1,8 @@
 import argparse
 from dotenv import load_dotenv
 from pathlib import Path
+
+from .update_webdewey import update_webdewey_cmd
 from .upload import upload_cmd
 from .extract_catalog import extract_catalog
 from .extract_authorities import extract_authorities
@@ -13,6 +15,11 @@ def add_upload_parser(subparsers):
     parser.set_defaults(func=upload_cmd)
     parser.add_argument('--skip-vocabularies', action='store_true', default=False)
     parser.add_argument('--skip-catalog', action='store_true', default=False)
+
+
+def add_update_webdewey_parser(subparsers):
+    parser = subparsers.add_parser('update_webdewey')
+    parser.set_defaults(func=update_webdewey_cmd)
 
 
 def add_catalog_parser(subparsers):
@@ -42,6 +49,7 @@ def app():
     subparsers = parser.add_subparsers()
 
     add_upload_parser(subparsers)
+    add_update_webdewey_parser(subparsers)
     add_catalog_parser(subparsers)
     add_authorities_parser(subparsers)
 
