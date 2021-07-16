@@ -217,10 +217,10 @@ class Graph:
 
         # self.graph.add((types[entity.type]['group'], SKOS.member, entity.uri()))
 
-        if '-' in entity.id:
-            self.add(entity, RDF.type, ONTO.EntityCandidate)
-        else:
-            self.add(entity, RDF.type, ONTO.Entity)
+        #if '-' in entity.id:
+        #    self.add(entity, RDF.type, ONTO.EntityCandidate)
+        #else:
+        #    self.add(entity, RDF.type, ONTO.Entity)
 
         for concept_scheme in concept_schemes:
             self.add(entity, SKOS.inScheme, concept_scheme.uri)

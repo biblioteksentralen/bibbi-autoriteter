@@ -15,29 +15,9 @@ bs: a owl:Ontology ;
     "Biblioteksentralen's schema for Bibbi authorities"@en ;
 .
 
-bs:Entity a rdfs:Class , owl:Class ;
-  rdfs:isDefinedBy bs: ;
-  rdfs:subClassOf skos:Concept ;
-  rdfs:label "Entity"@en , "Entitet"@nb ;
-  rdfs:comment "Entitet med stabil URI."@nb ;
-.
-
-bs:EntityCandidate a rdfs:Class , owl:Class ;
-  rdfs:isDefinedBy bs: ;
-  rdfs:subClassOf skos:Concept ;
-  rdfs:label "Entity candidate"@en , "Entitetskandidat"@nb ;
-  rdfs:comment "Entitetskandidat som ikke er godkjent enda. URI-en er ikke stabil."@nb ;
-.
-
-bs:AuthorityResource a rdfs:Class , owl:Class ;
-  rdfs:isDefinedBy bs: ;
-  rdfs:subClassOf skos:Concept ;  # God idé eller ikke? Blander vi RWO og ikke?
-  rdfs:label "Authority Resource"@en , "Autoritetsressurs"@nb ;
-  rdfs:comment "Overordnet klasse av ting"@nb ;
-.
-
 bs:Topic a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
+  rdfs:subClassOf skos:Concept ;
   rdfs:label "Generelt emne"@nb ,
     "Generelt emne"@nn ,
     "Topical subject"@en ;
