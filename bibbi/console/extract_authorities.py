@@ -97,10 +97,12 @@ def add_relation_to_main_entity(label_factory: LabelFactory, collection: EntityC
             label=label_factory.make(entity.row, include_subdivisions=False).nb,
             entity_type=entity_map[entity.type],
         )
-        if len(broader) == 0:
-            warning('<Tittel som emne> mangler assosiert <Tittel>', entity)
-        elif len(broader) > 1:
+        if len(broader) > 1:
             warning('<Tittel som emne> har mer enn én mulig <Tittel>', entity)
+            print(broader)
+        elif len(broader) == 0:
+            # warning('<Tittel som emne> mangler assosiert <Tittel>', entity)
+            pass
         else:
             entity.broader.append(collection.get(broader[0]))
             return True
