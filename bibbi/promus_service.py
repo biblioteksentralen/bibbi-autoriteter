@@ -454,7 +454,7 @@ class PromusAuthorityTable(PromusTable):
 
             if main_row.type == TYPE_PERSON:
                 if main_row.has('work_title') or main_row.has('work_title_part'):
-                    if main_row.get('field_code') == '600':
+                    if main_row.get('webdewey_nr') or main_row.get('ddk5_nr'):
                         kwargs['type'] = TYPE_TITLE_SUBJECT
                     else:
                         kwargs['type'] = TYPE_TITLE
