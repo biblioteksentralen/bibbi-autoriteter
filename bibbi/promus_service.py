@@ -16,7 +16,8 @@ from bibbi.entity_service import BibbiEntity, Entity, Nation
 from bibbi.label import LabelFactory
 
 from .constants import TYPE_GEOGRAPHIC, TYPE_COMPLEX, TYPE_PERSON, TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON_SUBJECT, \
-    TYPE_CORPORATION, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON
+    TYPE_CORPORATION, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON, TYPE_EVENT, \
+    TYPE_EVENT_SUBJECT
 from .db import Db
 from .util import trim, to_str, LanguageMap
 from .references import ReferenceMap
@@ -471,6 +472,9 @@ class PromusAuthorityTable(PromusTable):
                     #    kwargs['type'] = TYPE_LAW or TYPE_MUSICALBUM or other?
                 else:
                     kwargs['type'] = TYPE_CORPORATION_SUBJECT
+
+            elif main_row.type == TYPE_EVENT:
+                kwargs['type'] = TYPE_EVENT_SUBJECT
 
         for field in fields(self.entity_class):
             if field.name not in kwargs:
