@@ -23,6 +23,7 @@ class Entity:
     type: str
     pref_label: LanguageMap
     alt_labels: List[LanguageMap]
+    local_id: str
 
     def uri(self) -> URIRef:
         return self.namespace.term(self.id)
@@ -36,6 +37,7 @@ class Nation(Entity):
     marc21_code: Optional[str] = None
     abbreviation: Optional[str] = None
     description: Optional[str] = None
+    geographic_concept_id: Optional[str] = None
 
 
 @dataclass
@@ -83,9 +85,10 @@ class EntityIndex:
         self.indices = {
             'label+entity_type': {},
             'label+source_type': {},
+            'local_id+entity_type': {},
         }
 
-    def add(self, label: LanguageMap, entity: Entity):
+    def add_label(self, label: LanguageMap, entity: Entity):
         label_str = label.nb.lower()
         key = label_str + '@' + entity.type
         self.add_to('label+entity_type', key, entity.id)
@@ -95,23 +98,36 @@ class EntityIndex:
             self.indices[idx][key] = []
         self.indices[idx][key].append(eid)
 
-    def find(self, label: str, entity_type=None, source_type=None) -> list:
+    def find(self, label: str = None, entity_type=None, source_type=None, local_id=None) -> list:
         """
-        Find an entity, either by label + entity type, or label + source_type.
+        Find an entity, either by label + entity type, or label + source_type, or local_id + entity_type
 
         Args:
             label: The entity's label
             entity_type: The type of the
             source_type: The source type, e.g.
+            local_id: Originating table primary key
 
         Returns:
 
         """
-        label = label.lower()
-        if entity_type is not None:
-            return self.indices['label+entity_type'].get(label + '@' + entity_type) or []
-        if source_type is not None:
-            return self.indices['label+source_type'].get(label + '@' + source_type) or []
+        if label is not None:
+            label = label.lower()
+            if entity_type is not None:
+                return self.indices['label+entity_type'].get(label + '@' + entity_type) or []
+            # if source_type is not None:
+            #     return self.indices['label+source_type'].get(label + '@' + source_type) or []
+        elif local_id is not None:
+            if entity_type is not None:
+                return self.indices['local_id+entity_type'].get(local_id + '@' + entity_type) or []
+        raise ValueError('Invalid argument combination')
+
+    def add_entity(self, entity):
+        self.add_to('local_id+entity_type', entity.local_id + '@' + entity.type, entity.id)
+        if entity.pref_label.nb is not None:
+            self.add_label(entity.pref_label, entity)
+        for alt_label in entity.alt_labels:
+            self.add_label(alt_label, entity)
 
 
 class EntityCollection:
@@ -146,10 +162,7 @@ class EntityCollection:
     def update_index(self):
         self.index = EntityIndex()
         for entity_id, entity in self._members.items():
-            if entity.pref_label.nb is not None:
-                self.index.add(entity.pref_label, entity)
-            for alt_label in entity.alt_labels:
-                self.index.add(alt_label, entity)
+            self.index.add_entity(entity)
 
     def import_table(self, table: PromusTable):
         n = 0

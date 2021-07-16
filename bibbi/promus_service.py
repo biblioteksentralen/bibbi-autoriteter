@@ -207,6 +207,7 @@ class PromusTable:
         for row in self.rows():
             kwargs = {
                 'id': self.get_entity_id(row),
+                'local_id': row['row_id'],
                 'row': row,
                 'namespace': self.namespace,
                 'type': row.type,
@@ -418,6 +419,7 @@ class PromusAuthorityTable(PromusTable):
 
         kwargs = {
             'id': entity_id,
+            'local_id': main_row.row_id,
             'namespace': self.namespace,
             'row': main_row,
             'type': main_row.type,
@@ -852,6 +854,8 @@ class NationTable(PromusTable):
         'Marc21_Name': 'marc21_code',
         'NotInUse': 'not_in_use',
         'BSSpecific': 'bs_specific',  # not in use
+        'AuthorityGeographic_ID': 'geographic_concept_id',
+        '_AuthorityGeographicDisplay': 'geographic_concept_label',
     }
 
     def get_select_query(self) -> str:

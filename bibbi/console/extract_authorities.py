@@ -148,25 +148,11 @@ def transform_demographic_group(entity: BibbiEntity, countries: EntityCollection
     en invers relasjon 1163875:"Somalia" <demografisk gruppe> 1130466:"Somaliere".
     """
 
-    manual_bibbi_map = {
-        'England': 'Storbritannia - England',
-        'Forente arabiske emirater': 'De Forente arabiske emirater',
-        'Irland': 'Irland (republikken)',
-        'Komorene': 'Komorene (stat)',
-        'Kongo (Den demokratiske republikken)': 'Kongo (demokratisk republikk)',
-        'Kongo-Brazzaville': 'Kongo-Brazzaville (republikk)',
-        'Skottland': 'Storbritannia - Skottland',
-        'Taiwan': 'Kina - Taiwan',
-        'Tibet': 'Kina - Tibet',
-        'Wales': 'Storbritannia - Wales',
-    }
-
     nation: Optional[Nation] = countries.get(entity.bs_nasj_id)
     if nation is not None:
         entity.scopeNote = nation.description
-        if nation.label is not None:
-            nation_label = manual_bibbi_map.get(nation.label, nation.label)
-            entity.country = bibbi.find_first(label=nation_label, entity_type=TYPE_GEOGRAPHIC)
+        if nation.geographic_concept_id is not None:
+            entity.country = bibbi.find_first(local_id=nation.geographic_concept_id, entity_type=TYPE_GEOGRAPHIC)
             if entity.country is not None:
                 entity.country.demographicGroup = entity  # Reverse relation
                 entity.country.iso3166_2_code = nation.iso3166_2_code
@@ -177,7 +163,7 @@ def transform_demographic_group(entity: BibbiEntity, countries: EntityCollection
                 elif entity.country.iso3166_2_code is not None:
                     warning('Landskode ikke funnet på Wikidata: "%s"' % entity.country.iso3166_2_code, entity)
             else:
-                warning('Fant ikke geografisk entitet med navn "%s"' % nation_label, entity)
+                warning('Fant ikke geografisk autoritet med ID "%s"' % nation.geographic_concept_id, entity)
         return True
     else:
         warning('Nasjonalitetskode ble ikke funnet i nasjonalitetstabell: "%s"' % entity.bs_nasj_id, entity)
