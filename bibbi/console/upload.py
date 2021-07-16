@@ -30,6 +30,7 @@ def upload_cmd(config, options):
             'bibbi-genre.nt': 'https://graph.bs.no/bibbi-sjanger-form',
             'bibbi-person.nt': 'https://graph.bs.no/bibbi-personer',
             'bibbi-corporation.nt': 'https://graph.bs.no/bibbi-korporasjoner',
+            'bibbi-event.nt': 'https://graph.bs.no/bibbi-arrangementer',
             'webdewey-nb.nt': 'https://graph.bs.no/webdewey',
             'webdewey-bibbi-mappings.nt': 'https://graph.bs.no/webdewey',
         }
