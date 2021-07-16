@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from .constants import SUB_DELIM, TYPE_CORPORATION, QUA_DELIM, TYPE_GEOGRAPHIC, TYPE_PERSON, INNER_DELIM
+from .constants import SUB_DELIM, TYPE_CORPORATION, QUA_DELIM, TYPE_GEOGRAPHIC, TYPE_PERSON, INNER_DELIM, TYPE_EVENT, \
+    TYPE_EVENT_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_CORPORATION_SUBJECT
 from .util import LanguageMap
 
 if TYPE_CHECKING:
@@ -33,7 +34,7 @@ class LabelFactory:
         # 1. Navn ($a)
         label = row.get_lang_map('label')
 
-        # 2. Forklarende tilføyelse i parentes ($q)
+        # 2. Forklarende tilføyelse i parentes
         if detail := row.get_lang_map('detail'):
             label.nb += ' (%s)' % detail.nb
             label.nn += ' (%s)' % detail.nn
@@ -49,12 +50,15 @@ class LabelFactory:
             # Geografiske emneord (655): $a og $z kombineres
             return self.get_geographic_label(row, include_subdivisions)
 
-        elif row.type == TYPE_PERSON:
+        elif row.type == [TYPE_PERSON, TYPE_PERSON_SUBJECT]:
             # Personer (X00): $a, $b, $t kombineres
             return self.get_person_label(row)
 
-        elif row.type == TYPE_CORPORATION:
+        elif row.type == [TYPE_CORPORATION, TYPE_CORPORATION_SUBJECT]:
             return self.get_corporation_label(row)
+
+        elif row.type in [TYPE_EVENT, TYPE_EVENT_SUBJECT]:
+            return self.get_event_label(row)
 
         return self.get_label_and_detail(row)
 
@@ -186,5 +190,35 @@ class LabelFactory:
         #     # Tittel på lover og musikkalbum (nynorsk-variant finnes ikke)
         #     label['nb'] = '%s (%s)' % (self.work_title, label['nb'])
         #     label['nn'] = '%s (%s)' % (self.work_title, label['nn'])
+
+        return label
+
+    def get_event_label(self, row: DataRow) -> LanguageMap:
+        """
+        Returns the event name components (X11 $a, $n $d) of this subject heading
+        combined into a single string. Not quite sure if we should also include $c
+        """
+        # 1. Navn ($a)
+        label = row.get_lang_map('label')
+
+        # Nummer for arrangement (X11 $n)
+        if event_no := row.get('event_no'):
+            label.nb += ' ' + event_no
+            label.nn += ' ' + event_no
+
+        # Dato for arrangement (X11 $d)
+        if event_date := row.get('event_date'):
+            label.nb += INNER_DELIM + event_date
+            label.nn += INNER_DELIM + event_date
+
+        # 2. Forklarende tilføyelse i parentes
+        if detail := row.get_lang_map('detail'):
+            label.nb += ' (%s)' % detail.nb
+            label.nn += ' (%s)' % detail.nn
+
+        # Lokasjon for arrangement (X11 $c)
+        # if event_location := row.get('event_location'):
+        #     label.nb += QUA_DELIM + event_location
+        #     label.nn += QUA_DELIM + event_location
 
         return label

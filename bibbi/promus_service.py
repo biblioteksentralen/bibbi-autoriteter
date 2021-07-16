@@ -637,10 +637,10 @@ class CorporationTable(PromusAuthorityTable):
         'CorpName': 'label',
         'CorpName_N': 'label_nn',  # $a Corporate name or juridiction name
         'CorpDep': 'sub_unit',  # $b Subordinate unit
-        'CorpPlace': 'location',  # $c Location of meeting  (Nesten ikke i bruk)
-        'CorpDate': 'date',  # $d Date of meeting or treaty signing
+        'CorpPlace': 'event_location',  # $c Location of meeting  (Nesten ikke i bruk)
+        'CorpDate': 'event_date',  # $d Date of meeting or treaty signing
         'CorpFunc': 'corp_func',  # (ikke i bruk)
-        'CorpNr': 'corp_nr',  # $n Number of part/section/meeting ? (ikke i bruk)
+        'CorpNr': 'event_no',  # $n Number of part/section/meeting ? (ikke i bruk)
         'CorpDetail': 'detail',  # (Forklarende parentes)
         'CorpDetail_N': 'detail_nn',  #
         'SortingTitle': 'sorting_title',
@@ -779,9 +779,9 @@ class ConferenceTable(PromusAuthorityTable):
         'ConfID': 'row_id',
         'ConfName': 'label',
         'ConfName_N': 'label_nn',  #
-        'ConfPlace': 'location',  # $c Location of meeting
-        'ConfDate': 'date',  # $d Date of meeting or treaty signing
-        'ConfNr': 'conf_nr',  # $n Number of part/section/meeting ?
+        'ConfPlace': 'event_location',  # $c Location of meeting
+        'ConfDate': 'event_date',  # $d Date of meeting or treaty signing
+        'ConfNr': 'event_no',  # $n Number of part/section/meeting ?
         'ConfDetail': 'detail',  # (Forklarende parentes)
         'SortingTitle': 'sorting_title',
         'TopicTitle': 'work_title',  # $t - Title of a work / Tittel for dokument som emne
