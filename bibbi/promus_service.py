@@ -140,14 +140,14 @@ class DataRow:
                 yield LanguageMap(nb=part, nn=nn_parts[k])
             else:
                 if len(nn_parts) != 0:
-                    log.warning('Number of "%s" subdivisions differs for %s: "%s - %s"@nb != "%s - %s"@nn',
+                    log.warning('Number of "%s" subdivisions differs for %s: "%s"@nb != "%s"@nn',
                                 subdiv_type,
                                 self.data.bibsent_id,
-                                self.get('label'),
+                                # self.get('label'),
                                 ' - '.join(nb_parts),
-                                self.get('label_nn') or self.get('label'),
+                                # self.get('label_nn') or self.get('label'),
                                 ' - '.join(nn_parts))
-                yield LanguageMap(nb=part, nn=part)
+                yield LanguageMap(nb=part, nn=part)  # fallback to nb for nn
 
     def get_qualifier(self):
         return LanguageMap(nb=self.data.qualifier, nn=self.data.qualifier_nn)
