@@ -244,30 +244,25 @@ def serialize_as_rdf(collections):
         last_modified
     )
 
-    extra_src_files = {
-        TYPE_TOPICAL: ['src/bibbi-emner.ttl'],
-        TYPE_GENRE: ['src/bibbi-sjanger-form.ttl'],
-    }
+    extra_src_files = [
+        'src/bibbi-groups.ttl',
+    ]
 
-    concept_scheme_uris = {
-        TYPE_GENRE: URIRef('https://id.bs.no/bibbi-sjanger-form/'),
-        TYPE_TOPICAL: URIRef('https://id.bs.no/bibbi-emner/'),
-        TYPE_GEOGRAPHIC: URIRef('https://id.bs.no/bibbi-geografisk/'),
-        TYPE_PERSON: URIRef('https://id.bs.no/bibbi-personer/'),
-        TYPE_CORPORATION: URIRef('https://id.bs.no/bibbi-korporasjoner/'),
-        TYPE_EVENT: URIRef('https://id.bs.no/bibbi-arrangementer/'),
-    }
+    concept_scheme_uri = URIRef('https://id.bs.no/bibbi')
 
-    for source_type in [TYPE_GENRE, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_CORPORATION, TYPE_EVENT]:
-        entities = collections['bibbi'].filter(lambda entity: entity.source_type == source_type)
-        RdfEntityAndMappingSerializer() \
-            .load(['src/bs.ttl', 'src/bibbi.scheme.ttl', *extra_src_files.get(source_type, [])]) \
-            .set_concept_schemes([
-                bibbi_concept_scheme,
-                ConceptScheme(concept_scheme_uris[source_type], entities.get_last_modified())
-            ]) \
-            .add_entities(entities) \
-            .serialize('out/bibbi-%s.nt' % source_type, 'ntriples')
+    entities = collections['bibbi']
+    RdfEntityAndMappingSerializer() \
+        .load([
+            'src/bs.ttl',
+            'src/bibbi.scheme.ttl',
+            *extra_src_files
+        ]) \
+        .set_concept_schemes([
+            bibbi_concept_scheme,
+            ConceptScheme(concept_scheme_uri, entities.get_last_modified())
+        ]) \
+        .add_entities(entities) \
+        .serialize('out/bibbi.nt', 'ntriples')
 
     RdfReverseMappingSerializer() \
         .add_entities(collections['bibbi'], ) \

@@ -10,3 +10,17 @@ group:f20ee617-c670-4e6a-81d0-0fe823057548
         "Nationalities"@en ;
     dcterms:description "Demografiske grupper definert ved tilhørighet til land eller folkeslag/etnisk gruppe." ;
 .
+
+group:efbe2d4b-b3de-4194-b069-b764b1333a23
+    a isothes:ConceptGroup, skos:Collection ;
+    skos:prefLabel "Filmsjangre"@nb,
+        "Filmsjangre"@nn,
+        "Film genres"@en ;
+.
+
+group:a3ac9412-c520-4b1e-b393-ab9b0fc690b7
+    a isothes:ConceptGroup, skos:Collection ;
+    skos:prefLabel "Dataspillsjangre"@nb,
+        "Dataspelsjangre"@nn,
+        "Video game genres"@en ;
+.

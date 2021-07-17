@@ -25,12 +25,7 @@ def upload_cmd(config, options):
     if not options.skip_vocabularies:
 
         graphs = {
-            'bibbi-topical.nt': 'https://graph.bs.no/bibbi-emner',
-            'bibbi-geographic.nt': 'https://graph.bs.no/bibbi-geografisk',
-            'bibbi-genre.nt': 'https://graph.bs.no/bibbi-sjanger-form',
-            'bibbi-person.nt': 'https://graph.bs.no/bibbi-personer',
-            'bibbi-corporation.nt': 'https://graph.bs.no/bibbi-korporasjoner',
-            'bibbi-event.nt': 'https://graph.bs.no/bibbi-arrangementer',
+            'bibbi.nt': 'https://graph.bs.no/bibbi',
             'webdewey-nb.nt': 'https://graph.bs.no/webdewey',
             'webdewey-bibbi-mappings.nt': 'https://graph.bs.no/webdewey',
         }
