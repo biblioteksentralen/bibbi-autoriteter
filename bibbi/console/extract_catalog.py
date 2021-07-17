@@ -226,7 +226,7 @@ class Runner:
             ItemSubField.Text AS value
           FROM ItemField
           INNER JOIN ItemSubField ON ItemSubField.ItemField_ID = ItemField.ItemField_ID
-          WHERE ItemField.FieldCode IN ('019', '020', '024', '245', '260')
+          WHERE ItemField.FieldCode IN ('019', '020', '024', '082', '245', '260')
           ORDER BY ItemField.Item_ID, ItemField.FieldCode
         ''')
 
@@ -384,6 +384,7 @@ class Runner:
                 '_id': item.bibbi_id,
                 # 'title_ax': item.title_ax,
                 'ean': marc_map_item.get('025$a') or marc_map_item.get('020$a'),
+                'webdewey': marc_map_item.get('082$a'),
                 'cataloguing_date': item.cataloguing_date.strftime('%Y-%m-%d'),
                 'approve_date': item.approve_date.strftime('%Y-%m-%d'),
                 'title': title,
@@ -394,6 +395,8 @@ class Runner:
                 'doc_types': marc_map_item.get('019$b'),
                 'form': marc_map_item.get('019$d'),
             }
+            if doc['webdewey'] is not None:
+                doc['webdewey'] = doc['webdewey'].replace('/', '')
             if export2ax_item:
                 # doc['ean'] = export2ax_item.ean
                 doc['doc_type'] = export2ax_item.doc_type
