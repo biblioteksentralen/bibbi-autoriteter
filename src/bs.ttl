@@ -41,12 +41,12 @@ bs:Country a rdfs:Class , owl:Class ;
     "Country"@en ;
 .
 
-bs:GenreOrForm a rdfs:Class , owl:Class ;
+bs:FormGenre a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   rdfs:subClassOf skos:Concept ;
   rdfs:label "Form/sjanger"@nb ,
     "Form/genre"@en ;
-  rdfs:comment "Genre or form."@en ;
+  rdfs:comment "Form eller sjanger."@nb ;
 .
 
 # schema:Person
