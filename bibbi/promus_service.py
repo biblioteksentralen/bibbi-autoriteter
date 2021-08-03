@@ -438,6 +438,9 @@ class PromusAuthorityTable(PromusTable):
         if main_row.get('detail') == 'fiktiv person':
             kwargs['type'] = TYPE_FICTIVE_PERSON
 
+        if main_row.has('date'):
+            kwargs['date'] = main_row.get('date')
+
         # Simplify work title by joining together $t $i $p
         work_title = ' : '.join([
             main_row.get(x) for x in [

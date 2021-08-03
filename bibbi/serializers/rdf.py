@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 # namespaces: bibbi eller bibsent ?
 ISOTHES = Namespace('http://purl.org/iso25964/skos-thes#')
-SCHEMA = Namespace('http://schema.org/')
+SCHEMA = Namespace('https://schema.org/')
 ONTO = Namespace('https://schema.bs.no/')
 
 
