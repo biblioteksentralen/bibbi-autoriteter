@@ -181,11 +181,13 @@ class Runner:
                 AND (
                     FieldCode LIKE '1%'
                     OR FieldCode LIKE '6%'
-                    OR (FieldCode LIKE '7%' AND Indicator2 <> 2)  -- Ikke analytisk biinførsel
+                    OR FieldCode LIKE '7%'
                     OR FieldCode LIKE '8%'
                 )
-
         ''')
+        # Analytiske biinførsler: Hadde først utelatt dem med Indicator2 <> 2, men husker ikke hvorfor. Det fører til
+        # at vi får noen autoriteter som tilsynelatende ikke er i bruk i Skosmos, som https://id.bs.no/bibbi/1023449,
+        # så prøver å ta dem med og se hvordan det går. DM 2021-08-04
 
     @timing
     def get_authority_table(self, table: AuthorityTable) -> pd.DataFrame:
