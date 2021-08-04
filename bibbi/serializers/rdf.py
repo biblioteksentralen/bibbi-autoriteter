@@ -162,12 +162,11 @@ class Graph:
                 self.add_raw(entity.uri(), SKOS.closeMatch, webdewey_uri)
 
         if entity.noraf_id is not None:
-            # Note: authority.bibsys.no doesn't deliver RDF, and livedata.bibsys.no is no more.
-            uri = URIRef('http://authority.bibsys.no/authority/rest/authorities/html/' + entity.noraf_id)
+            # authority.bibsys.no doesn't deliver RDF, and livedata.bibsys.no is no more,
+            uri = URIRef('https://bsaut.toolforge.org/show/' + entity.noraf_id)
             self.add(entity, SKOS.exactMatch, uri)
 
         if entity.external_uri is not None:
-            # Note: authority.bibsys.no doesn't deliver RDF, and livedata.bibsys.no is no more.
             uri = URIRef(entity.external_uri)
             self.add(entity, SKOS.exactMatch, uri)
 
