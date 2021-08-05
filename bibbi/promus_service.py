@@ -683,7 +683,7 @@ class CorporationTable(PromusAuthorityTable):
         'WebDeweyNr': 'webdewey_nr',
         'WebDeweyApproved': 'webdewey_approved',
         'WebDeweyKun': 'webdewey_kun',
-        'NB_ID': 'nb_id',             # BARE-ID
+        'NB_ID': 'noraf_id',          # BARE-ID
         'NB_Origin': 'nb_origin',     # 'adabas'
         'Bibsent_ID': 'bibsent_id',   # Verdi for $0
         'Felles_ID': 'felles_id',     # Felles ID når vi har både hoved- og biautoriteter
@@ -812,7 +812,7 @@ class ConferenceTable(PromusAuthorityTable):
         'WebDeweyNr': 'webdewey_nr',
         'WebDeweyApproved': 'webdewey_approved',
         'WebDeweyKun': 'webdewey_kun',
-        'NB_ID': 'nb_id',  # BARE-ID
+        'NB_ID': 'noraf_id',  # BARE-ID
         'NB_Origin': 'nb_origin',  # 'adabas'
         'Bibsent_ID': 'bibsent_id',  # Verdi for $0
         'Felles_ID': 'felles_id',  # Felles ID når vi har både hoved- og biautoriteter
