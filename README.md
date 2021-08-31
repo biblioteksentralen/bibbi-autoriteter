@@ -1,4 +1,4 @@
-# Bibbi autoriteter
+# Bibbi-autoriteter
 
 - Biblioteksentralens emneord finnes på nynorsk og bokmål.
 - Prekoordinerte emneord (dvs. sammensatte emner) uttrykkes i strenger, og rekkefølgen angir hvilket aspekt ved emnet som er viktigst.

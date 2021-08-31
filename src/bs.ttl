@@ -11,7 +11,7 @@
 
 bs: a owl:Ontology ;
   owl:versionInfo "0.1.0" ;
-  dc:title "Biblioteksentralens RDF-skjema for Bibbi autoriteter"@nb ,
+  dc:title "Biblioteksentralens RDF-skjema for Bibbi-autoriteter"@nb ,
     "Biblioteksentralen's schema for Bibbi authorities"@en ;
 .
 

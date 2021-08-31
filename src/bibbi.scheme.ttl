@@ -19,11 +19,11 @@
 @prefix group: <https://id.bs.no/bibbi/group/> .
 
 : a skos:ConceptScheme, void:Dataset, sd:Graph ;
-    rdfs:label "Bibbi autoriteter"@nb , "Bibbi autoritetar"@nn ;
-    dcterms:title "Bibbi autoriteter"@nb , "Bibbi autoritetar"@nn ;
+    rdfs:label "Bibbi-autoriteter"@nb , "Bibbi-autoritetar"@nn , "Bibbi authorities"@en ;
+    dcterms:title "Bibbi-autoriteter"@nb , "Bibbi-autoritetar"@nn , "Bibbi authorities"@en ;
     dcterms:description "Bibbi authorities is Biblioteksentralen's authority file covering topics, people, corporations and soon works."@en,
-        "Bibbi autoriteter er Biblioteksentralens samlede autoritetsfil for emneord, personer, korporasjoner, stedsnavn og på sikt verk."@nb ,
-        "Bibbi autoritetar er Biblioteksentralens samla autoritetsfil for emneord, personar, korporasjonar, stadsnamn og på sikt verk."@nb ;
+        "Bibbi-autoriteter er Biblioteksentralens samlede autoritetsfil for emneord, personer, korporasjoner, stedsnavn og på sikt verk."@nb ,
+        "Bibbi-autoritetar er Biblioteksentralens samla autoritetsfil for emneord, personar, korporasjonar, stadsnamn og på sikt verk."@nb ;
     dcterms:publisher :1166735 ;
     dcterms:creator :1166735 ;
     owl:sameAs <http://id.loc.gov/vocabulary/subjectSchemes/bibbi> ,
