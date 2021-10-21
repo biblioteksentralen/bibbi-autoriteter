@@ -63,6 +63,11 @@ class BibbiEntity(Entity):
     legislation: Optional[LanguageMap] = None
     broader: List[str] = field(default_factory=list)
     components: List[str] = field(default_factory=list)
+    creator_id: Optional[str] = None
+    creator_name: Optional[str] = None
+    creator: Optional[BibbiEntity] = None
+    original_language: Optional[str] = None
+    original_year: Optional[str] = None
 
     exact_match: List[str] = field(default_factory=list)
 

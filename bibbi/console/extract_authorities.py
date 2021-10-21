@@ -18,7 +18,7 @@ from bibbi.serializers.rdf import RdfEntityAndMappingSerializer, RdfEntitySerial
     ConceptScheme
 
 from bibbi.constants import TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON, TYPE_PERSON_SUBJECT, TYPE_CORPORATION_SUBJECT, \
-    TYPE_DEMOGRAPHIC_GROUP, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_TOPICAL, TYPE_CORPORATION, TYPE_EVENT
+    TYPE_DEMOGRAPHIC_GROUP, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_TOPICAL, TYPE_CORPORATION, TYPE_EVENT, TYPE_WORK
 from dotenv import load_dotenv
 
 from bibbi.db import Db
@@ -26,7 +26,7 @@ from bibbi.entity_service import BibbiEntity, Entity, EntityCollection, Nation
 from bibbi.logging import configure_logging
 from bibbi.promus_cache import PromusCache
 from bibbi.promus_service import PromusService, GenreTable, PromusTable, PersonTable, TopicTable, \
-    GeographicTable, CorporationTable, NationTable, ConferenceTable
+    GeographicTable, CorporationTable, NationTable, ConferenceTable, WorkTable
 
 log = logging.getLogger(__name__)
 
@@ -169,6 +169,17 @@ def transform_demographic_group(entity: BibbiEntity, countries: EntityCollection
         warning('Nasjonalitetskode ble ikke funnet i nasjonalitetstabell: "%s"' % entity.bs_nasj_id, entity)
 
 
+def transform_work(entity: BibbiEntity, bibbi: EntityCollection):
+    """
+    For entiteter av type `Work`, lenk til person.
+    """
+
+    if entity.creator_id:
+        entity.creator = bibbi.find_first(local_id=entity.creator_id, entity_type=TYPE_PERSON)
+        return True
+    return False
+
+
 @timing
 def transform_entities(label_factory: LabelFactory,
                        collections: Dict[str, EntityCollection],
@@ -193,7 +204,7 @@ def transform_entities(label_factory: LabelFactory,
         for nationality_code, bibbi_item in nationality_bibbi_map.items()
     }
 
-    counters = {'bi': 0, 'cn': 0, 'dm': 0}
+    counters = {'bi': 0, 'cn': 0, 'dm': 0, 'wp': 0}
     for collection in collections.values():
         for entity in collection:
 
@@ -210,7 +221,11 @@ def transform_entities(label_factory: LabelFactory,
                 if transform_demographic_group(entity, countries, bibbi, wikidata_country_map):
                     counters['dm'] += 1
 
-    log.info('Relations added: broader: %(bi)s, nationality: %(cn)s, demographic_group: %(dm)s', counters)
+            if entity.type in [TYPE_WORK]:
+                if transform_work(entity, bibbi):
+                    counters['wp'] += 1
+
+    log.info('Relations added: broader: %(bi)s, nationality: %(cn)s, demographic_group: %(dm)s, work-person: %(wp)s', counters)
 
 #
 # @timing
@@ -285,6 +300,7 @@ def run(services: dict, use_cache: bool, remove_unused: bool):
         ConferenceTable,
         CorporationTable,
         PersonTable,
+        WorkTable,
     ])
 
     # 2. If extracted from database, update the cache

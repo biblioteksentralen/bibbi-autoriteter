@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from .constants import SUB_DELIM, TYPE_CORPORATION, QUA_DELIM, TYPE_GEOGRAPHIC, TYPE_PERSON, INNER_DELIM, TYPE_EVENT, \
-    TYPE_EVENT_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_CORPORATION_SUBJECT
+    TYPE_EVENT_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_CORPORATION_SUBJECT, TYPE_WORK
 from .util import LanguageMap
 
 if TYPE_CHECKING:
@@ -59,6 +59,9 @@ class LabelFactory:
 
         elif row.type in [TYPE_EVENT, TYPE_EVENT_SUBJECT]:
             return self.get_event_label(row)
+
+        elif row.type in [TYPE_WORK]:
+            return self.get_work_label(row)
 
         return self.get_label_and_detail(row)
 
@@ -220,5 +223,22 @@ class LabelFactory:
         # if event_location := row.get('event_location'):
         #     label.nb += QUA_DELIM + event_location
         #     label.nn += QUA_DELIM + event_location
+
+        return label
+
+    def get_work_label(self, row: DataRow) -> LanguageMap:
+        """
+        Returns the work label components of this subject heading
+        combined into a single string.
+        """
+        label = row.get_lang_map('label')
+
+        if language := row.get('language'):
+            label.nb += f" ({language})"
+            label.nn += f" ({language})"
+
+        if creator_name := row.get('creator_name'):
+            label.nb += f" ({creator_name})"
+            label.nn += f" ({creator_name})"
 
         return label

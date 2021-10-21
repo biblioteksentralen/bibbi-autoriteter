@@ -207,6 +207,7 @@ class Runner:
     def get_authorities(self):
         return {
             table.field: self.get_authority_table(table) for table in [
+                AuthorityTable('AuthorityWork', 'WorkID', '01', title_column='TitlePreferred'),
                 AuthorityTable('AuthorityPerson', 'PersonID', '00', title_column='TopicTitle'),
                 AuthorityTable('AuthorityCorp', 'CorpID', '10', title_column='TopicTitle'),
                 AuthorityTable('AuthorityConf', 'ConfID', '11'),

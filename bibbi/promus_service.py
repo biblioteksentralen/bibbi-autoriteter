@@ -870,3 +870,34 @@ class NationTable(PromusTable):
 
     def get_entity_id(self, row):
         return row[self.index_column]
+
+
+
+class WorkTable(PromusAuthorityTable):
+    type = 'work'
+    table_name = 'AuthorityWork'
+    id_field = 'WorkID'
+    field_code = '101'
+    columns = {
+        'WorkID': 'row_id',  # lokal id
+        'TitlePreferred': 'label',
+        'Verk_ID_temp': 'tmp',  # internt
+        'PersonID': 'creator_id',  # lokal ID fra AuthorityPerson, må konverteres til URI
+        'PersonName': 'creator_name',
+        'FirstLanguage': 'original_language',
+        'FirstYear': 'original_year',
+        'Bibsent_ID': 'bibsent_id',  # verdi for $0
+        'NB_ID': 'noraf_id',   # (ikke i bruk)
+        'Antall': 'antall',   # (ikke i bruk)
+        'ReferenceNr': 'ref_id',   # (ikke i bruk)
+        '_DisplayValue': 'display_value',
+        'Verksaar_260': 'work_year_260',
+        'Verksaar_503': 'work_year_503',
+        'Verksaar_NB': 'work_year_nb',
+        'Temp': 'tmp2',
+        'NotInUse': 'not_in_use',  # (ikke i bruk)
+        'Approved': 'approved',
+        'AutomaticApproved': 'automatic_approved',
+        'LastChanged': 'modified',  # (datetime)
+        'Created': 'created',  # (datetime)
+    }

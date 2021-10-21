@@ -111,6 +111,15 @@ bs:EventAsSubject a rdfs:Class , owl:Class ;
   rdfs:comment "Et frittstående eller gjentakende arrangement som emne."@nb ;
 .
 
+bs:Work a rdfs:Class , owl:Class ;
+  rdfs:isDefinedBy bs: ;
+  # rdfs:subClassOf ? ;
+  rdfs:subClassOf skos:Concept ;
+  rdfs:label "Verk"@nb ,
+    "Verk"@nn ,
+    "Work"@en ;
+.
+
 bs:Title a rdfs:Class , owl:Class ;
   rdfs:isDefinedBy bs: ;
   # rdfs:subClassOf foaf:Organization ;
@@ -305,6 +314,44 @@ bs:workTitle a rdf:Property , owl:DatatypeProperty ;
   rdfs:label "Verkstittel"@nb ,
     "Work title"@en ;
   rdfs:comment "Tittelen på verket som autoriteten beskriver."@en ;
+.
+
+bs:creator a rdf:Property , owl:ObjectProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range bs:AuthorityResource ;
+  owl:inverseOf bs:work ;
+  rdfs:label "Forfatter/skaper"@nb ,
+    "Creator"@en ;
+  rdfs:comment "Person som har skapt verket."@nb ;
+.
+
+bs:work a rdf:Property , owl:ObjectProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range bs:AuthorityResource ;
+  owl:inverseOf bs:creator ;
+  rdfs:label "Verk"@nb ,
+    "Work"@en ;
+  rdfs:comment "Verk skapt av denne personen."@nb ;
+.
+
+bs:dateOfWork a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Opprinnelig utgivelsesdato"@nb ,
+    "Original publication date"@en ;
+  rdfs:comment "Opprinnelig utgivelsesdato for verket."@nb ;  # bruke samme egenskap for andre ting?
+.
+
+bs:originalLanguage a rdf:Property , owl:DatatypeProperty ;
+  rdfs:isDefinedBy bs: ;
+  rdfs:domain bs:AuthorityResource ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "Originalspråk"@nb ,
+    "Original language"@en ;
+  rdfs:comment "Språket verket først ble produsert/fremført på."@nb ;
 .
 
 schema:birthDate a rdf:Property ;

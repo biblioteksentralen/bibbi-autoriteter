@@ -15,7 +15,8 @@ import skosify
 from ..util import ensure_parent_dir_exists
 from ..constants import TYPE_PERSON, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION, \
     TYPE_TITLE, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_QUALIFIER, TYPE_COMPLEX, \
-    TYPE_TITLE_SUBJECT, TYPE_NATION, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON, TYPE_EVENT, TYPE_EVENT_SUBJECT
+    TYPE_TITLE_SUBJECT, TYPE_NATION, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON, TYPE_EVENT, TYPE_EVENT_SUBJECT, \
+    TYPE_WORK
 from ..entity_service import Entity, BibbiEntity, Nation
 
 log = logging.getLogger(__name__)
@@ -193,6 +194,7 @@ class Graph:
             # TYPE_NATION: ONTO.Nation,
             TYPE_DEMOGRAPHIC_GROUP: ONTO.DemographicGroup,
             TYPE_FICTIVE_PERSON: ONTO.FictivePerson,
+            TYPE_WORK: ONTO.Work,
         }
 
         concept_groups = {
@@ -302,6 +304,10 @@ class Graph:
                 else:
                     log.warning('Found unknown concept group: %s', entity.concept_group)
 
+            if entity.creator:
+                self.add_raw(entity.uri(), ONTO.creator, entity.creator.uri())
+                self.add_raw(entity.creator.uri(), ONTO.work, entity.uri())
+
             # ------------------------------------------------------------
             # Misc
 
@@ -348,6 +354,12 @@ class Graph:
 
             if entity.scopeNote is not None:
                 self.add(entity, SKOS.scopeNote, Literal(entity.scopeNote, 'nb'))
+
+            if entity.original_year is not None:
+                self.add(entity, ONTO.dateOfWork, Literal(entity.original_year))
+
+            if entity.original_language is not None:
+                self.add(entity, ONTO.originalLanguage, Literal(entity.original_language))
 
 
     def skosify(self):
