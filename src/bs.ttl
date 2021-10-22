@@ -215,24 +215,6 @@ bs:webdeweyDraft a rdf:Property , owl:DatatypeProperty ;
     "WebDewey number (non-approved)"@en ;
 .
 
-bs:itemsAsEntry a rdf:Property , owl:DatatypeProperty ;
-  rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
-  rdfs:range rdfs:Literal ;
-  rdfs:label "Antall dokumenter (som ansvarlig)"@nb ,
-    "Number of documents (as responsible)"@en ;
-  rdfs:comment "Number of documents in the Bibbi catalogue that this agent has created or contributed to."@en ;
-.
-
-bs:itemsAsSubject a rdf:Property , owl:DatatypeProperty ;
-  rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
-  rdfs:range rdfs:Literal ;
-  rdfs:label "Antall dokumenter (som emne)"@nb ,
-    "Number of documents (as subject)"@en ;
-  rdfs:comment "Number of documents in the Bibbi catalogue where this agent is a subject."@en ;
-.
-
 bs:norafId a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
