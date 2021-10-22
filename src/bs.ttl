@@ -336,22 +336,22 @@ bs:work a rdf:Property , owl:ObjectProperty ;
   rdfs:comment "Verk skapt av denne personen."@nb ;
 .
 
-bs:dateOfWork a rdf:Property , owl:DatatypeProperty ;
+bs:publicationDate a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:Work ;
   rdfs:range rdfs:Literal ;
-  rdfs:label "Opprinnelig utgivelsesdato"@nb ,
-    "Original publication date"@en ;
-  rdfs:comment "Opprinnelig utgivelsesdato for verket."@nb ;  # bruke samme egenskap for andre ting?
+  rdfs:label "Utgivelsesdato"@nb ,
+    "Publication date"@en ;
+  rdfs:comment "Utgivelsesdato for verket."@nb ;  # bruke samme egenskap for andre ting?
 .
 
-bs:originalLanguage a rdf:Property , owl:DatatypeProperty ;
+bs:language a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:Work ;
   rdfs:range rdfs:Literal ;
-  rdfs:label "Originalspråk"@nb ,
-    "Original language"@en ;
-  rdfs:comment "Språket verket først ble produsert/fremført på."@nb ;
+  rdfs:label "Språk"@nb ,
+    "Language"@en ;
+  rdfs:comment "Språket verket først ble produsert/fremført på."@nb ; # bruke samme egenskap for andre ting?
 .
 
 schema:birthDate a rdf:Property ;

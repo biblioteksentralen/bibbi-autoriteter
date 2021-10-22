@@ -356,10 +356,10 @@ class Graph:
                 self.add(entity, SKOS.scopeNote, Literal(entity.scopeNote, 'nb'))
 
             if entity.original_year is not None:
-                self.add(entity, ONTO.dateOfWork, Literal(entity.original_year))
+                self.add(entity, ONTO.publicationDate, Literal(entity.original_year))
 
             if entity.original_language is not None:
-                self.add(entity, ONTO.originalLanguage, Literal(entity.original_language))
+                self.add(entity, ONTO.language, Literal(entity.original_language))
 
 
     def skosify(self):
