@@ -279,7 +279,7 @@ bs:abbreviation a rdf:Property , owl:DatatypeProperty ;
   rdfs:comment "Forkortelse brukt i 386 $b (flere steder?) i Biblioteksentralens MARC-poster"@nb ;
 .
 
-bs:country a rdf:Property , owl:DatatypeProperty ;
+bs:country a rdf:Property , owl:ObjectProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
   rdfs:range bs:AuthorityResource ;
@@ -288,7 +288,7 @@ bs:country a rdf:Property , owl:DatatypeProperty ;
   # rdfs:comment "Statsborgerskap eller annen sterk tilhørighet til et land."@en ;
 .
 
-bs:demographicGroup a rdf:Property , owl:DatatypeProperty ;
+bs:demographicGroup a rdf:Property , owl:ObjectProperty ;
   rdfs:isDefinedBy bs: ;
   rdfs:domain bs:AuthorityResource ;
   rdfs:range bs:AuthorityResource ;
@@ -318,8 +318,8 @@ bs:workTitle a rdf:Property , owl:DatatypeProperty ;
 
 bs:creator a rdf:Property , owl:ObjectProperty ;
   rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
-  rdfs:range bs:AuthorityResource ;
+  rdfs:domain bs:Work ;
+  rdfs:range bs:Person ;
   owl:inverseOf bs:work ;
   rdfs:label "Forfatter/skaper"@nb ,
     "Creator"@en ;
@@ -328,8 +328,8 @@ bs:creator a rdf:Property , owl:ObjectProperty ;
 
 bs:work a rdf:Property , owl:ObjectProperty ;
   rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
-  rdfs:range bs:AuthorityResource ;
+  rdfs:domain bs:Person ;
+  rdfs:range bs:Work ;
   owl:inverseOf bs:creator ;
   rdfs:label "Verk"@nb ,
     "Work"@en ;
@@ -338,7 +338,7 @@ bs:work a rdf:Property , owl:ObjectProperty ;
 
 bs:dateOfWork a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
+  rdfs:domain bs:Work ;
   rdfs:range rdfs:Literal ;
   rdfs:label "Opprinnelig utgivelsesdato"@nb ,
     "Original publication date"@en ;
@@ -347,7 +347,7 @@ bs:dateOfWork a rdf:Property , owl:DatatypeProperty ;
 
 bs:originalLanguage a rdf:Property , owl:DatatypeProperty ;
   rdfs:isDefinedBy bs: ;
-  rdfs:domain bs:AuthorityResource ;
+  rdfs:domain bs:Work ;
   rdfs:range rdfs:Literal ;
   rdfs:label "Originalspråk"@nb ,
     "Original language"@en ;
