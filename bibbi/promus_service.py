@@ -693,6 +693,7 @@ class CorporationTable(PromusAuthorityTable):
         'Comment': 'comment',
         'Lov': 'law',               # Flagg (0 eller 1) som brukes for å angi at det er en lov
         'Handle_ID': 'handle_id',
+        'CorpType': 'corp_type',   # ?
     }
 
 
@@ -822,6 +823,7 @@ class ConferenceTable(PromusAuthorityTable):
         'Comment': 'comment',
         'Handle_ID': 'handle_id',
         '_DisplayValue': 'display_value',
+        'ConfType': 'conf_type',   # ?
 
         # 'ConfDetail_N': 'detail_nn',  #
         # 'Qualifier_N': 'qualifier_nn',  #
@@ -900,4 +902,7 @@ class WorkTable(PromusAuthorityTable):
         'AutomaticApproved': 'automatic_approved',
         'LastChanged': 'modified',  # (datetime)
         'Created': 'created',  # (datetime)
+        'SortingIndicator': 'sorting_indicator',
+        'Number_PartOfWork': 'number_partofwork',
+        'Title_PartOfWork': 'title_partofwork',
     }
