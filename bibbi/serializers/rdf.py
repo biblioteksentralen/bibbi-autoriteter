@@ -213,6 +213,8 @@ class Graph:
 
         self.add(entity, RDF.type, types[entity.type])
 
+        self.add(entity, DCTERMS.identifier, Literal(entity.id))
+
         if isinstance(entity, BibbiEntity) and entity.approved == '0':
             self.add(entity, OWL.deprecated, Literal(True))
 
