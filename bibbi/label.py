@@ -50,11 +50,11 @@ class LabelFactory:
             # Geografiske emneord (655): $a og $z kombineres
             return self.get_geographic_label(row, include_subdivisions)
 
-        elif row.type == [TYPE_PERSON, TYPE_PERSON_SUBJECT]:
+        elif row.type in [TYPE_PERSON, TYPE_PERSON_SUBJECT]:
             # Personer (X00): $a, $b, $t kombineres
             return self.get_person_label(row)
 
-        elif row.type == [TYPE_CORPORATION, TYPE_CORPORATION_SUBJECT]:
+        elif row.type in [TYPE_CORPORATION, TYPE_CORPORATION_SUBJECT]:
             return self.get_corporation_label(row)
 
         elif row.type in [TYPE_EVENT, TYPE_EVENT_SUBJECT]:
