@@ -21,10 +21,10 @@ class Entity:
     row: DataRow
     source_type: str
     type: str
-    complex: bool
     pref_label: LanguageMap
     alt_labels: List[LanguageMap]
     local_id: str
+    complex: bool = False
 
     def uri(self) -> URIRef:
         return self.namespace.term(self.id)
