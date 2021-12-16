@@ -13,9 +13,9 @@ from otsrdflib import OrderedTurtleSerializer
 import skosify
 
 from ..util import ensure_parent_dir_exists
-from ..constants import TYPE_PERSON, TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION, \
-    TYPE_TITLE, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_QUALIFIER, TYPE_COMPLEX, \
-    TYPE_TITLE_SUBJECT, TYPE_NATION, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON, TYPE_EVENT, TYPE_EVENT_SUBJECT, \
+from ..constants import TYPE_TOPICAL, TYPE_GEOGRAPHIC, TYPE_GENRE, TYPE_PERSON, TYPE_CORPORATION, \
+    TYPE_TITLE, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_QUALIFIER, \
+    TYPE_TITLE_SUBJECT, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON, TYPE_EVENT, TYPE_EVENT_SUBJECT, \
     TYPE_WORK
 from ..entity_service import Entity, BibbiEntity, Nation
 
@@ -187,7 +187,6 @@ class Graph:
             TYPE_EVENT_SUBJECT: ONTO.EventAsSubject,
             TYPE_PERSON_SUBJECT: ONTO.PersonAsSubject,
             TYPE_QUALIFIER: ONTO.Qualifier,
-            TYPE_COMPLEX: ONTO.Complex,
             TYPE_LAW: ONTO.Law,
             TYPE_TITLE: ONTO.Title,
             TYPE_TITLE_SUBJECT: ONTO.TitleAsSubject,
@@ -212,6 +211,10 @@ class Graph:
             return
 
         self.add(entity, RDF.type, types[entity.type])
+        if entity.complex:
+            self.add(entity, RDF.type, ONTO.ComplexType)
+        else:
+            self.add(entity, RDF.type, ONTO.SimpleType)
 
         self.add(entity, DCTERMS.identifier, Literal(entity.id))
 

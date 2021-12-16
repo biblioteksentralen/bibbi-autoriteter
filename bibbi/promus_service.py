@@ -2,20 +2,18 @@ from __future__ import annotations
 import logging
 import re
 import sys
-import os
 from collections import namedtuple
-from dataclasses import fields, MISSING
+from dataclasses import fields
 from typing import Optional, Generator, List, Dict
 
 import pandas as pd
-import feather
 from rdflib import Namespace, URIRef
 
 from bibbi.entity_service import BibbiEntity, Entity, Nation
 
 from bibbi.label import LabelFactory
 
-from .constants import TYPE_GEOGRAPHIC, TYPE_COMPLEX, TYPE_PERSON, TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON_SUBJECT, \
+from .constants import TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON_SUBJECT, \
     TYPE_CORPORATION, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON, TYPE_EVENT, \
     TYPE_EVENT_SUBJECT
 from .db import Db
@@ -424,13 +422,14 @@ class PromusAuthorityTable(PromusTable):
             'namespace': self.namespace,
             'row': main_row,
             'type': main_row.type,
+            'complex': False,
             'source_type': main_row.type,
             'pref_label': pref_label,
             'alt_labels': alt_labels,
         }
 
         if not main_row.is_main_entry():
-            kwargs['type'] = TYPE_COMPLEX
+            kwargs['complex'] = True
 
         if main_row.has('bs_nasj_id'):
             kwargs['type'] = TYPE_DEMOGRAPHIC_GROUP
