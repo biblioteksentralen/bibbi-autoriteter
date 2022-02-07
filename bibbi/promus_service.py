@@ -918,4 +918,6 @@ class WorkTable(PromusAuthorityTable):
         'SortingIndicator': 'sorting_indicator',
         'Number_PartOfWork': 'number_partofwork',
         'Title_PartOfWork': 'title_partofwork',
+        'WorkID_NB': 'workid_nb',
+        'WorkID_Deichman': 'workid_deichman',
     }
