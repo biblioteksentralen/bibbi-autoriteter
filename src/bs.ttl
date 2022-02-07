@@ -336,16 +336,23 @@ bs:language a rdf:Property , owl:DatatypeProperty ;
   rdfs:comment "Språket verket først ble produsert/fremført på."@nb ; # bruke samme egenskap for andre ting?
 .
 
-schema:birthDate a rdf:Property ;
+schema:birthDate a rdf:Property , owl:DatatypeProperty ;
     rdfs:label "Born"@en ,
                  "Født"@nb ,
                  "Født"@nn ;
   rdfs:comment "Date the person was born, either the year or the full date according to ISO 8601."@en ;
 .
 
-schema:deathDate a rdf:Property ;
+schema:deathDate a rdf:Property , owl:DatatypeProperty ;
     rdfs:label "Died"@en ,
                  "Død"@nb ,
                  "Død"@nn ;
   rdfs:comment "Year or date the person died, either the year or the full date according to ISO 8601."@en ;
+.
+
+schema:name a rdf:Property , owl:DatatypeProperty ;
+    rdfs:label "Name"@en ,
+                 "Navn"@nb ,
+                 "Namn"@nn ;
+  rdfs:comment "The name of the item"@en ;
 .

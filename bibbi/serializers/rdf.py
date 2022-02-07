@@ -253,8 +253,8 @@ class Graph:
         if isinstance(entity, BibbiEntity):
 
             if entity.name is not None:
-                self.add(entity, ONTO.name, Literal(entity.name.nb, 'nb'))
-                self.add(entity, ONTO.name, Literal(entity.name.nn, 'nn'))
+                self.add(entity, SCHEMA.name, Literal(entity.name.nb, 'nb'))
+                self.add(entity, SCHEMA.name, Literal(entity.name.nn, 'nn'))
 
             if entity.created is not None:
                 value = entity.created.strftime('%Y-%m-%dT%H:%M:%S')
