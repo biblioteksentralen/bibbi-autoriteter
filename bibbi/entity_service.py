@@ -69,6 +69,7 @@ class BibbiEntity(Entity):
     creator: Optional[BibbiEntity] = None
     original_language: Optional[str] = None
     original_year: Optional[str] = None
+    name: Optional[LanguageMap] = None
 
     exact_match: List[str] = field(default_factory=list)
 

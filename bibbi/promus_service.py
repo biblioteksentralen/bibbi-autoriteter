@@ -452,6 +452,18 @@ class PromusAuthorityTable(PromusTable):
         ])
         kwargs['work_title'] = work_title if work_title != '' else None
 
+        if main_row.has('felles_id') and main_row.get('felles_id') == main_row.get('bibsent_id'):
+            # Hovedautoriteter
+            if main_row.type == TYPE_PERSON:
+                person_name = main_row.label
+                if ', ' in person_name:
+                    m = re.match(r'^([^,]+), (.*)$', person_name)
+                    if m:
+                        person_name = f'{m.group(2)} {m.group(1)}'
+                kwargs['name'] = LanguageMap(nb=person_name, nn=person_name)
+            elif main_row.type == TYPE_CORPORATION:
+                kwargs['name'] = LanguageMap(nb=main_row.label, nn=main_row.label_nn)
+
         if main_row.has('felles_id') and main_row.get('felles_id') != main_row.get('bibsent_id'):
             # Biautoriteter
 

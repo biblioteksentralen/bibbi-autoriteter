@@ -252,6 +252,10 @@ class Graph:
 
         if isinstance(entity, BibbiEntity):
 
+            if entity.name is not None:
+                self.add(entity, ONTO.name, Literal(entity.name.nb, 'nb'))
+                self.add(entity, ONTO.name, Literal(entity.name.nn, 'nn'))
+
             if entity.created is not None:
                 value = entity.created.strftime('%Y-%m-%dT%H:%M:%S')
                 self.add(entity, DCTERMS.created, Literal(value, datatype=XSD.dateTime))
