@@ -255,6 +255,8 @@ class Graph:
             if entity.name is not None:
                 self.add(entity, SCHEMA.name, Literal(entity.name.nb, 'nb'))
                 self.add(entity, SCHEMA.name, Literal(entity.name.nn, 'nn'))
+                self.add(entity, SKOS.hiddenLabel, Literal(entity.name.nb, 'nb'))
+                self.add(entity, SKOS.hiddenLabel, Literal(entity.name.nn, 'nn'))
 
             if entity.created is not None:
                 value = entity.created.strftime('%Y-%m-%dT%H:%M:%S')
