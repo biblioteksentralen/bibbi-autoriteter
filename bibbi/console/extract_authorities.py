@@ -326,7 +326,7 @@ def run(services: dict, use_cache: bool, remove_unused: bool):
 
 
 def get_services(use_cache: bool):
-    max_cache_age = timedelta(days=14)
+    max_cache_age = timedelta(days=7)
 
     promus_cache = PromusCache('cache')
     promus_cache_age = promus_cache.age()
