@@ -15,7 +15,7 @@ from bibbi.label import LabelFactory
 
 from .constants import TYPE_GEOGRAPHIC, TYPE_PERSON, TYPE_TITLE_SUBJECT, TYPE_TITLE, TYPE_PERSON_SUBJECT, \
     TYPE_CORPORATION, TYPE_LAW, TYPE_CORPORATION_SUBJECT, TYPE_DEMOGRAPHIC_GROUP, TYPE_FICTIVE_PERSON, TYPE_EVENT, \
-    TYPE_EVENT_SUBJECT
+    TYPE_EVENT_SUBJECT, TYPE_WORK
 from .db import Db
 from .util import trim, to_str, LanguageMap
 from .references import ReferenceMap
@@ -452,6 +452,9 @@ class PromusAuthorityTable(PromusTable):
         ])
         kwargs['work_title'] = work_title if work_title != '' else None
 
+        if main_row.type == TYPE_WORK:
+            kwargs['work_title'] = main_row.label
+
         if main_row.has('felles_id') and main_row.get('felles_id') == main_row.get('bibsent_id'):
             # Hovedautoriteter
             if main_row.type == TYPE_PERSON:
@@ -883,7 +886,6 @@ class NationTable(PromusTable):
 
     def get_entity_id(self, row):
         return row[self.index_column]
-
 
 
 class WorkTable(PromusAuthorityTable):
