@@ -458,12 +458,7 @@ class PromusAuthorityTable(PromusTable):
         if main_row.has('felles_id') and main_row.get('felles_id') == main_row.get('bibsent_id'):
             # Hovedautoriteter
             if main_row.type == TYPE_PERSON:
-                person_name = main_row.label
-                if ', ' in person_name:
-                    m = re.match(r'^([^,]+), (.*)$', person_name)
-                    if m:
-                        person_name = f'{m.group(2)} {m.group(1)}'
-                kwargs['name'] = LanguageMap(nb=person_name, nn=person_name)
+                kwargs['name'] = LanguageMap(nb=main_row.normalized_name, nn=main_row.normalized_name)
             elif main_row.type == TYPE_CORPORATION:
                 kwargs['name'] = LanguageMap(nb=main_row.label, nn=main_row.label_nn)
 
@@ -783,8 +778,9 @@ class PersonTable(PromusAuthorityTable):
 
         'KlasseSpraak_Tid': 'klassespraak_tid',  # Ny oktober 2020
         'KlasseSpraak_Tid_Approved': 'klassespraak_tid_approved',  # Ny oktober 2020
-        'KlasseTid': 'klasse_tid', # Ny nov 2020
-        'KlasseComic': 'klasse_comic', # Ny nov 2020
+        'KlasseTid': 'klasse_tid',  # Ny nov 2020
+        'KlasseComic': 'klasse_comic',  # Ny nov 2020
+        '_NormalizedName': 'normalized_name',  # Ny feb 2022 BIBL-250
     }
 
 
