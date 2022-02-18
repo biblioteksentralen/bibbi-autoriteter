@@ -916,4 +916,5 @@ class WorkTable(PromusAuthorityTable):
         'Title_PartOfWork': 'title_partofwork',
         'WorkID_NB': 'workid_nb',
         'WorkID_Deichman': 'workid_deichman',
+        'Comment': 'comment',
     }
