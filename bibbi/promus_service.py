@@ -41,8 +41,9 @@ class PromusService:
                 if column[0] not in table.columns:
                     log.error('[%s] Encountered unknown column "%s" in "%s" table', table.type, column[0],
                               table.table_name)
-                    sys.exit(1)
-                columns.append(table.columns[column[0]])
+                    # sys.exit(1)
+                else:
+                    columns.append(table.columns[column[0]])
 
             rows = []
             for row in cursor:
