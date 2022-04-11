@@ -36,21 +36,23 @@ class PromusService:
         log.info('[%s] Retrieving records from database', table.type)
         with self.connection.cursor() as cursor:
             cursor.execute(table.get_select_query())
-            columns = []
-            for column in cursor.description:
+            column_names = []
+            column_indices = []
+            for idx, column in enumerate(cursor.description):
                 if column[0] not in table.columns:
                     log.error('[%s] Encountered unknown column "%s" in "%s" table', table.type, column[0],
                               table.table_name)
                     # sys.exit(1)
                 else:
-                    columns.append(table.columns[column[0]])
+                    column_names.append(table.columns[column[0]])
+                    column_indices.append(idx)
 
             rows = []
             for row in cursor:
-                row = [trim(to_str(c)) for c in row]
+                row = [trim(to_str(c)) for idx, c in enumerate(row) if idx in column_indices]
                 rows.append(row)
 
-        df = pd.DataFrame(rows, dtype='str', columns=columns)
+        df = pd.DataFrame(rows, dtype='str', columns=column_names)
         df.set_index(table.index_column, drop=False, inplace=True)
         log.info('[%s] Loaded %d x %d table', table.type, df.shape[0], df.shape[1])
         table.df = df
