@@ -210,6 +210,10 @@ class Graph:
             print(entity)
             return
 
+        if entity.type == TYPE_WORK:
+            # Skipping works for now
+            return
+
         self.add(entity, RDF.type, types[entity.type])
         if entity.complex:
             self.add(entity, RDF.type, ONTO.ComplexType)
