@@ -211,7 +211,7 @@ class Graph:
             return
 
         if entity.type == TYPE_WORK:
-            # Skipping works for now
+            # Skipping works until we get a new server
             return
 
         self.add(entity, RDF.type, types[entity.type])
