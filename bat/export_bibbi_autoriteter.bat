@@ -8,8 +8,8 @@ call .venv\Scripts\console.cmd update_webdewey || goto :error
 echo Exporting authorities
 call .venv\Scripts\console.cmd authorities || goto :error
 
-echo Extracting catalog
-call .venv\Scripts\console.cmd catalog || goto :error
+;echo Extracting catalog
+;call .venv\Scripts\console.cmd catalog || goto :error
 
 echo Uploading
 call .venv\Scripts\console.cmd upload || goto :error

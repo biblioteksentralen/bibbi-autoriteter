@@ -14,7 +14,7 @@ def add_upload_parser(subparsers):
     parser = subparsers.add_parser('upload')
     parser.set_defaults(func=upload_cmd)
     parser.add_argument('--skip-vocabularies', action='store_true', default=False)
-    parser.add_argument('--skip-catalog', action='store_true', default=False)
+    parser.add_argument('--skip-catalog', action='store_false', default=True)
 
 
 def add_update_webdewey_parser(subparsers):
