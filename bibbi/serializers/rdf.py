@@ -210,8 +210,8 @@ class Graph:
             print(entity)
             return
 
-        if entity.type == TYPE_WORK:
-            # Skipping works until we get a new server
+        if entity.type == TYPE_WORK or entity.type == TYPE_TITLE:
+            # Skipping works for now
             return
 
         self.add(entity, RDF.type, types[entity.type])
