@@ -45,6 +45,7 @@ class AuthorityTable:
     field: str
     approve_column: str = 'Approved'
     title_column: str = 'NULL'
+    display_column: str = '_DisplayValue'
 
 
 @dataclass
@@ -199,7 +200,7 @@ class Runner:
                 NotInUse as not_in_use,
                 %(approve_column)s AS approved,
                 %(title_column)s AS title,
-                _DisplayValue AS label
+                %(display_column)s AS label
             FROM %(name)s
         ''' % table.__dict__)
 
@@ -213,7 +214,7 @@ class Runner:
                 AuthorityTable('AuthorityConf', 'ConfID', '11'),
                 # AuthorityTable('AuthorityTitle', 'TitleID', '30'),      # Har ikke Bibsent_ID
                 AuthorityTable('AuthorityTopic', 'AuthID', '50'),
-                AuthorityTable('AuthorityGeographic', 'TopicID', '51'),
+                AuthorityTable('AuthorityGeoTopic', 'GeoTopicID', '51', display_column='_GeoName'),
                 AuthorityTable('AuthorityFreeGenre', 'TopicID', '53', "CAST(1 AS BIT)"),  # Mangler 'Approved'-felt
                 AuthorityTable('AuthorityGenre', 'TopicID', '55', "CAST(1 AS BIT)"),
             ]

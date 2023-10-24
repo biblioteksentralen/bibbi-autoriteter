@@ -568,44 +568,30 @@ class TopicTable(PromusAuthorityTable):
 
 class GeographicTable(PromusAuthorityTable):
     type = 'geographic'
-    table_name = 'AuthorityGeographic'
-    id_field = 'TopicID'
+    table_name = 'AuthorityGeoTopic'
+    id_field = 'GeoTopicID'
     field_code = 'X51'
     columns = {
-        'TopicID': 'row_id',                         # Lokal ID for tabellen
+        'GeoTopicID': 'row_id',                         # Lokal ID for tabellen
         'GeoName': 'label',                      # Emne ($a), 13439 unike verdier
         'GeoName_N': 'label_nn',                   #
         'GeoDetail': 'detail',                     # Forklarende tilføyelse i parentes, tilsv. kvalifikator
-        'GeoDetail_N': 'detail_nn',                  #
+        # 'GeoDetail_N': 'detail_nn',                  #
         'UnderTopic': 'sub_topic',                 # Underinndeling ($x), med –, 3180 unike, ser ut som det er mye form/sjanger (Historie, Reisehåndbøker, ...)
         'GeoUnderTopic': 'sub_geo',              # Geografisk underinndeling ($z), 1315 unike, ofte administrative underinndelinger.
         'Qualifier': 'qualifier',                  # Kun brukt på 41 autoriteter
         'Qualifier_N': 'qualifier_nn',               #
-        'DeweyNr': 'ddk5_nr',                    # Alltid DDK5?
-        'TopicLang': 'topic_lang',                  #
-        'FieldCode': 'field_code',                  # 650 (27347 stk.), 950 (14 stk.)
-        'Security_ID': 'security_id',                 # (bool)
-        'UserID': 'user_id',                     # (ikke i bruk?)
-        'LastChanged': 'modified',                # (datetime)
-        'Created': 'created',                    # (datetime)
-        'Approved': 'approved',                   # (bool)
-        'ApprovedDate': 'approve_date',                # (datetime)
-        'ApprovedUserID': 'approved_by',             # NULL eller 1
-        'Reference': 'ref',                  # hvorvidt noe er en henvisning, muligens ikke i bruk
+        'DeweyNr': 'ddk5_nr',                    # Alltid DDK5?       
         'ReferenceNr': 'ref_id',                # AuthId henvisningen peker til
-        '_DisplayValue': 'display_value',               # (computed)
-        'BibbiNr': 'bibbi_nr',                    # (ukjent, ikke bruk)
-        'NotInUse': 'not_in_use',                   # (ikke i bruk)
-        'Source': 'source',                     # ('ikke i bruk': BS, NULL eller 1)
-        'BibbiReferenceNr': 'bibbi_ref',           # Bibbinummer henvisningen går til?
+        '_GeoName': 'display_value',               # (computed)
         'UnderTopic_N': 'sub_topic_nn',              #
         'GeoUnderTopic_N': 'sub_geo_nn',           #
-        'SortingTitle': 'sorting_title',               # Sorteringstittel
         'WebDeweyNr': 'webdewey_nr',                 # WebDewey
         'WebDeweyApproved': 'webdewey_approved',
-        'WebDeweyKun': 'webdewey_kun',
         'Bibsent_ID': 'bibsent_id',                  # Globalt unik autoritets-ID for Biblioteksentralen ($0)
         'Comment': 'comment',                    # Intern note, omtrent ikke i bruk
+        'Created': 'created',  # (datetime)
+        'LastChanged': 'modified',
     }
 
 
