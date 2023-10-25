@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from .constants import SUB_DELIM, TYPE_CORPORATION, QUA_DELIM, TYPE_GEOGRAPHIC, TYPE_PERSON, INNER_DELIM, TYPE_EVENT, \
-    TYPE_EVENT_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_CORPORATION_SUBJECT, TYPE_WORK
+    TYPE_EVENT_SUBJECT, TYPE_PERSON_SUBJECT, TYPE_CORPORATION_SUBJECT, TYPE_TITLE_SUBJECT, TYPE_WORK
 from .util import LanguageMap
 
 if TYPE_CHECKING:
@@ -96,6 +96,10 @@ class LabelFactory:
             if qualifier := row.get_lang_map('qualifier'):
                 label.nb += QUA_DELIM + qualifier.nb
                 label.nn += QUA_DELIM + qualifier.nn
+
+        if row.type == TYPE_TITLE_SUBJECT or row.type == TYPE_PERSON_SUBJECT:
+            label.nb += ' (emne)'
+            label.nn += ' (emne)'
 
         return label
 
